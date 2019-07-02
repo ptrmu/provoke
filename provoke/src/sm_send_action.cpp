@@ -1,16 +1,22 @@
 
 #include "sm_send_action.hpp"
 
-#include "sm_send_action_states.hpp"
-
-namespace sm_send_action
+namespace provoke
 {
-  Machine::Machine(provoke::ProvokeNodeImpl &impl)
-    : states_(std::make_unique<States>(impl, *this))
+  namespace sm_send_action
   {
+    void PrepareAndSet::ready(int i) {
+      machine_.ready_.prepare(i);
+      machine_.set_state(machine_.ready_);
+    }
 
+    void PrepareAndSet::waiting() {
+      machine_.set_state(machine_.waiting_);
+    }
   }
 
-  Machine::~Machine()
-  {}
+  std::unique_ptr<StateMachineInterface> sm_send_action_factory(provoke::ProvokeNodeImpl &impl)
+  {
+    return std::unique_ptr<StateMachineInterface>(new sm_send_action::Machine(impl));
+  }
 }

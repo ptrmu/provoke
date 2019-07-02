@@ -28,14 +28,11 @@ find_package(ros2_shared REQUIRED)
 find_package(rclcpp REQUIRED)
 
 add_executable(provoke_node
-  src/provoke_node.cpp
   src/provoke_node_impl.cpp
   src/sm_manager.cpp
-  src/sm_manager_states.cpp
   src/sm_send_action.cpp
-  src/sm_send_action_states.cpp
   src/state_machine_interface.cpp
-  )
+  src/provoke_node_main.cpp)
 
 target_include_directories(provoke_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

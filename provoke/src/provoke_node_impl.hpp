@@ -3,6 +3,8 @@
 
 #include <memory>
 
+#include "state_machine_interface.hpp"
+
 namespace rclcpp
 {
   class Node;
@@ -21,7 +23,8 @@ namespace provoke
     rclcpp::Node &node_;
 
   private:
-    std::unique_ptr<sm_manager::Machine> sm_manager_;
+    std::unique_ptr<StateMachineInterface> sm_manager_;
+    std::unique_ptr<StateMachineInterface> sm_send_action_;
 
   public:
     ProvokeNodeImpl(rclcpp::Node &node);
