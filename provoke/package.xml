@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format2.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="2">
+  <name>provoke</name>
+  <version>0.0.0</version>
+  <description>Send commands to Tello</description>
+  <maintainer email="ptrmu@outlook.com">Peter Mullen</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>cmake</buildtool_depend>
+
+  <depend>tello_msgs</depend>
+  <depend>ros2_shared</depend>
+  <depend>rclcpp</depend>
+
+  <export>
+    <build_type>cmake</build_type>
+  </export>
+</package>
