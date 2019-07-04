@@ -5,12 +5,12 @@ namespace provoke
 {
   namespace sm_send_action
   {
-    void PrepareAndSet::ready(int i) {
+    void Hub::ready(int i) {
       machine_.ready_.prepare(i);
       machine_.set_state(machine_.ready_);
     }
 
-    void PrepareAndSet::waiting() {
+    void Hub::waiting() {
       machine_.set_state(machine_.waiting_);
     }
   }

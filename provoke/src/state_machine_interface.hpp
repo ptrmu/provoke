@@ -6,6 +6,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "tello_msgs/msg/tello_response.hpp"
+#include "tf2/LinearMath/Vector3.h"
 
 namespace provoke
 {
@@ -23,11 +24,9 @@ namespace provoke
 
     virtual ~StateInterface() = default;
 
-    virtual void on_enter();
-
     virtual bool on_timer(rclcpp::Time now);
 
-    virtual bool on_tello_response(tello_msgs::msg::TelloResponse * msg);
+    virtual bool on_tello_response(tello_msgs::msg::TelloResponse *msg);
   };
 
 
@@ -56,15 +55,40 @@ namespace provoke
     void set_state(StateInterface &state)
     {
       state_ = &state;
-      state.on_enter();
     }
-
-    virtual void on_enter();
   };
 
   std::unique_ptr<StateMachineInterface> sm_send_action_factory(ProvokeNodeImpl &impl);
 
   std::unique_ptr<StateMachineInterface> sm_manager_factory(ProvokeNodeImpl &impl);
 
+  namespace sm_pause
+  {
+    class Machine;
+  }
+
+  std::unique_ptr<sm_pause::Machine> sm_pause_factory(ProvokeNodeImpl &impl);
+
+  void sm_prepare(sm_pause::Machine &machine, rclcpp::Duration duration);
+
+  namespace sm_go
+  {
+    class Machine;
+  }
+
+  std::unique_ptr<sm_go::Machine> sm_go_factory(ProvokeNodeImpl &impl);
+
+  void sm_prepare(sm_go::Machine &machine, tf2::Vector3 velocity_mps,
+                  rclcpp::Duration duration, double msg_rate_hz);
+
+  namespace sm_go_out_back
+  {
+    class Machine;
+  }
+
+  std::unique_ptr<sm_go_out_back::Machine> sm_go_out_back_factory(ProvokeNodeImpl &impl);
+
+  void sm_prepare(sm_go_out_back::Machine &machine, tf2::Vector3 velocity_mps,
+                  rclcpp::Duration go_duration, rclcpp::Duration stop_duration, double msg_rate_hz);
 }
 #endif //STATE_MACHINE_INTERFACE_HPP

@@ -1,5 +1,5 @@
-#ifndef SM_SEND_ACTION_HPP
-#define SM_SEND_ACTION_HPP
+#ifndef SM_PAUSE_HPP
+#define SM_PAUSE_HPP
 
 #include <memory>
 
@@ -8,7 +8,7 @@
 
 namespace provoke
 {
-  namespace sm_send_action
+  namespace sm_pause
   {
     class Machine;
 
@@ -25,37 +25,9 @@ namespace provoke
         machine_{machine}
       {}
 
-      void ready(int i);
+      void set_ready(rclcpp::Duration duration);
 
-      void waiting();
-    };
-
-    // ==============================================================================
-    // Waiting state
-    // ==============================================================================
-
-    class Waiting : public provoke::StateInterface
-    {
-      provoke::ProvokeNodeImpl &impl_;
-      Hub &hub_;
-
-    public:
-      Waiting(provoke::ProvokeNodeImpl &impl, Hub &hub) :
-        StateInterface(impl, "Waiting"), impl_(impl), hub_(hub)
-      {}
-
-      virtual bool on_timer(rclcpp::Time now) override
-      {
-        (void)now;
-        hub_.ready(3);
-        return false;
-      }
-
-      virtual bool on_tello_response(tello_msgs::msg::TelloResponse * msg) override
-      {
-        (void)msg;
-        return false;
-      }
+      void set_waiting(rclcpp::Time end_time);
     };
 
     // ==============================================================================
@@ -66,27 +38,49 @@ namespace provoke
     {
       provoke::ProvokeNodeImpl &impl_;
       Hub &hub_;
+      rclcpp::Duration duration_{0, 0};
 
     public:
       Ready(provoke::ProvokeNodeImpl &impl, Hub &hub) :
         StateInterface(impl, "Ready"), impl_(impl), hub_(hub)
       {}
 
-      void prepare(int i)
+      void prepare(rclcpp::Duration duration)
       {
-        (void) i;
+        duration = duration_;
       }
 
       virtual bool on_timer(rclcpp::Time now) override
       {
-        (void)now;        hub_.waiting();
-        return false;
+        auto end_time = now + duration_;
+        hub_.set_waiting(end_time);
+        return true;
+      }
+    };
+
+    // ==============================================================================
+    // Waiting state
+    // ==============================================================================
+
+    class Waiting : public provoke::StateInterface
+    {
+      provoke::ProvokeNodeImpl &impl_;
+      Hub &hub_;
+      rclcpp::Time end_time_;
+
+    public:
+      Waiting(provoke::ProvokeNodeImpl &impl, Hub &hub) :
+        StateInterface(impl, "Waiting"), impl_(impl), hub_(hub)
+      {}
+
+      void prepare(rclcpp::Time end_time)
+      {
+        end_time_ = end_time;
       }
 
-      virtual bool on_tello_response(tello_msgs::msg::TelloResponse * msg) override
+      virtual bool on_timer(rclcpp::Time now) override
       {
-        (void)msg;
-        return false;
+        return now < end_time_;
       }
     };
 
@@ -103,11 +97,17 @@ namespace provoke
       Waiting waiting_;
 
       Machine(provoke::ProvokeNodeImpl &impl)
-        : StateMachineInterface{impl, "Send Action"}, hub_{*this}, ready_{impl, hub_}, waiting_{impl, hub_}
+        : StateMachineInterface{impl, "Send Action"}, hub_{*this}, ready_{impl, hub_},
+          waiting_{impl, hub_}
       {}
 
       ~Machine() = default;
+
+      void prepare(rclcpp::Duration duration)
+      {
+        hub_.set_ready(duration);
+      }
     };
   }
 }
-#endif //SM_SEND_ACTION_HPP
+#endif //SM_PAUSE_HPP

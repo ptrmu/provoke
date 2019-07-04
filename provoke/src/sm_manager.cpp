@@ -5,7 +5,7 @@ namespace provoke
 {
   namespace sm_manager
   {
-    void PrepareAndSet::state_a() {
+    void Hub::state_a() {
       machine_.set_state(machine_.state_a_);
     }
   }

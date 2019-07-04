@@ -13,15 +13,15 @@ namespace provoke
     class Machine;
 
     // ==============================================================================
-    // PrepareAndSet class
+    // Hub class
     // ==============================================================================
 
-    class PrepareAndSet
+    class Hub
     {
       Machine &machine_;
 
     public:
-      PrepareAndSet(Machine &machine) :
+      Hub(Machine &machine) :
         machine_{machine}
       {}
 
@@ -35,11 +35,11 @@ namespace provoke
     class StateA : public provoke::StateInterface
     {
       provoke::ProvokeNodeImpl &impl_;
-      PrepareAndSet &prepare_and_set_;
+      Hub &hub_;
 
     public:
-      StateA(provoke::ProvokeNodeImpl &impl, PrepareAndSet &prepare_and_set) :
-        StateInterface(impl, "StateA"), impl_(impl), prepare_and_set_(prepare_and_set)
+      StateA(provoke::ProvokeNodeImpl &impl, Hub &hub) :
+        StateInterface(impl, "StateA"), impl_(impl), hub_(hub)
       {}
 
       virtual bool on_timer(rclcpp::Time now) override
@@ -61,20 +61,16 @@ namespace provoke
 
     class Machine : public StateMachineInterface
     {
-      PrepareAndSet prepare_and_set_;
+      Hub hub_;
 
     public:
       StateA state_a_;
 
       Machine(provoke::ProvokeNodeImpl &impl)
-        : StateMachineInterface{impl, "Send Action"}, prepare_and_set_{*this}, state_a_{impl, prepare_and_set_}
+        : StateMachineInterface{impl, "Send Action"}, hub_{*this}, state_a_{impl, hub_}
       {}
 
       ~Machine() = default;
-
-      void on_enter() override
-      {
-      }
     };
   }
 }
