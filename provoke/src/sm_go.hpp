@@ -22,33 +22,17 @@ namespace provoke
       tf2::Vector3 velocity_mps_;
 
     public:
-      rclcpp::Duration duration_{0, 0};
-      rclcpp::Duration inter_msg_duration_{0, 0};
-
       Hub(Machine &machine) :
         machine_{machine}
       {}
 
+      void prepare(tf2::Vector3 velocity_mps, rclcpp::Duration duration, double msg_rate_hz);
+
       void set_ready();
 
-      void set_waiting(rclcpp::Time end_time, rclcpp::Time next_msg_time);
+      void set_waiting(rclcpp::Time end_time, rclcpp::Time next_msg_time, rclcpp::Duration inter_msg_duration);
 
-      void prepare(tf2::Vector3 velocity_mps, rclcpp::Duration duration, double msg_rate_hz)
-      {
-        velocity_mps_ = velocity_mps;
-        duration_ = duration;
-        auto milliseconds = msg_rate_hz == 0.0 ?
-                            std::chrono::milliseconds::zero() :
-                            std::chrono::milliseconds{int(1000.0 / msg_rate_hz)};
-        inter_msg_duration_ = milliseconds == std::chrono::milliseconds::zero() ?
-                              rclcpp::Duration{std::chrono::milliseconds::zero()} :
-                              rclcpp::Duration(milliseconds);
-      }
-
-      void send_go()
-      {
-
-      }
+      void send_go();
     };
 
     // ==============================================================================
@@ -59,20 +43,34 @@ namespace provoke
     {
       provoke::ProvokeNodeImpl &impl_;
       Hub &hub_;
+      rclcpp::Duration duration_{0, 0};
+      rclcpp::Duration inter_msg_duration_{0, 0};
 
     public:
       Ready(provoke::ProvokeNodeImpl &impl, Hub &hub) :
-        StateInterface(impl, "Ready"), impl_(impl), hub_(hub)
+        StateInterface(impl, "ready"), impl_(impl), hub_(hub)
       {}
 
-      virtual bool on_timer(rclcpp::Time now) override
+      void prepare(rclcpp::Duration duration, double msg_rate_hz)
+      {
+        duration_ = duration;
+        auto milliseconds = msg_rate_hz == 0.0 ?
+                            std::chrono::milliseconds::zero() :
+                            std::chrono::milliseconds{int(1000.0 / msg_rate_hz)};
+        inter_msg_duration_ = milliseconds == std::chrono::milliseconds::zero() ?
+                              rclcpp::Duration{std::chrono::milliseconds::zero()} :
+                              rclcpp::Duration(milliseconds);
+      }
+
+      bool on_timer(rclcpp::Time now) override
       {
         hub_.send_go();
 
-        auto end_time = now + hub_.duration_;
-        auto next_msg_time = hub_.inter_msg_duration_ == std::chrono::milliseconds::zero() ?
-                             rclcpp::Time{} : now + hub_.inter_msg_duration_;
-        hub_.set_waiting(end_time, next_msg_time);
+        auto end_time = now + duration_;
+        auto next_msg_time = inter_msg_duration_ == std::chrono::milliseconds::zero() ?
+                             rclcpp::Time{} : now + inter_msg_duration_;
+
+        hub_.set_waiting(end_time, next_msg_time, inter_msg_duration_);
         return true;
       }
     };
@@ -87,30 +85,31 @@ namespace provoke
       Hub &hub_;
       rclcpp::Time end_time_;
       rclcpp::Time next_msg_time_;
+      rclcpp::Duration inter_msg_duration_{0, 0};
 
     public:
       Waiting(provoke::ProvokeNodeImpl &impl, Hub &hub) :
-        StateInterface(impl, "Waiting"), impl_(impl), hub_(hub)
+        StateInterface(impl, "waiting"), impl_(impl), hub_(hub)
       {}
 
-      void prepare(rclcpp::Time end_time, rclcpp::Time next_msg_time)
+      void prepare(rclcpp::Time end_time, rclcpp::Time next_msg_time, rclcpp::Duration inter_msg_duration)
       {
         end_time_ = end_time;
         next_msg_time_ = next_msg_time;
+        inter_msg_duration_ = inter_msg_duration;
       }
 
-      virtual bool on_timer(rclcpp::Time now) override
+      bool on_timer(rclcpp::Time now) override
       {
-        if (now >= end_time_)
-        {
+        if (now >= end_time_) {
           return false;
         }
 
-        if (next_msg_time_.nanoseconds() != 0 && now >= next_msg_time_)
-        {
+        if (next_msg_time_.nanoseconds() != 0 && now >= next_msg_time_) {
           hub_.send_go();
-          while (now >= next_msg_time_)
-          next_msg_time_ = next_msg_time_ + hub_.inter_msg_duration_;
+          while (now >= next_msg_time_) {
+            next_msg_time_ = next_msg_time_ + inter_msg_duration_;
+          }
         }
 
         return true;
@@ -123,24 +122,17 @@ namespace provoke
 
     class Machine : public StateMachineInterface
     {
-      Hub hub_;
-
     public:
+      Hub hub_;
       Ready ready_;
       Waiting waiting_;
 
       Machine(provoke::ProvokeNodeImpl &impl)
-        : StateMachineInterface{impl, "Send Action"}, hub_{*this}, ready_{impl, hub_},
+        : StateMachineInterface{impl, "sm_go"}, hub_{*this}, ready_{impl, hub_},
           waiting_{impl, hub_}
       {}
 
       ~Machine() = default;
-
-      void prepare(tf2::Vector3 velocity_mps, rclcpp::Duration duration, double msg_rate_hz)
-      {
-        hub_.prepare(velocity_mps, duration, msg_rate_hz);
-        hub_.set_ready();
-      }
     };
   }
 }

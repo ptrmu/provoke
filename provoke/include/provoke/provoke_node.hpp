@@ -3,13 +3,9 @@
 
 #include "rclcpp/rclcpp.hpp"
 
-namespace rclcpp
-{
-  class Node;
-}
 namespace provoke
 {
-  std::unique_ptr<rclcpp::Node> node_factory();
+  std::shared_ptr<rclcpp::Node> node_factory(rclcpp::NodeOptions &options);
 }
 
 #endif //PROVOKE_NODE_HPP

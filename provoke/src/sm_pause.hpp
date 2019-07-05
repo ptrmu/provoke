@@ -25,6 +25,11 @@ namespace provoke
         machine_{machine}
       {}
 
+      void prepare(rclcpp::Duration duration)
+      {
+        set_ready(duration);
+      }
+
       void set_ready(rclcpp::Duration duration);
 
       void set_waiting(rclcpp::Time end_time);
@@ -42,7 +47,7 @@ namespace provoke
 
     public:
       Ready(provoke::ProvokeNodeImpl &impl, Hub &hub) :
-        StateInterface(impl, "Ready"), impl_(impl), hub_(hub)
+        StateInterface(impl, "ready"), impl_(impl), hub_(hub)
       {}
 
       void prepare(rclcpp::Duration duration)
@@ -50,7 +55,7 @@ namespace provoke
         duration = duration_;
       }
 
-      virtual bool on_timer(rclcpp::Time now) override
+      bool on_timer(rclcpp::Time now) override
       {
         auto end_time = now + duration_;
         hub_.set_waiting(end_time);
@@ -70,7 +75,7 @@ namespace provoke
 
     public:
       Waiting(provoke::ProvokeNodeImpl &impl, Hub &hub) :
-        StateInterface(impl, "Waiting"), impl_(impl), hub_(hub)
+        StateInterface(impl, "waiting"), impl_(impl), hub_(hub)
       {}
 
       void prepare(rclcpp::Time end_time)
@@ -78,7 +83,7 @@ namespace provoke
         end_time_ = end_time;
       }
 
-      virtual bool on_timer(rclcpp::Time now) override
+      bool on_timer(rclcpp::Time now) override
       {
         return now < end_time_;
       }
@@ -90,23 +95,17 @@ namespace provoke
 
     class Machine : public StateMachineInterface
     {
-      Hub hub_;
-
     public:
+      Hub hub_;
       Ready ready_;
       Waiting waiting_;
 
       Machine(provoke::ProvokeNodeImpl &impl)
-        : StateMachineInterface{impl, "Send Action"}, hub_{*this}, ready_{impl, hub_},
+        : StateMachineInterface{impl, "sm_pause"}, hub_{*this}, ready_{impl, hub_},
           waiting_{impl, hub_}
       {}
 
       ~Machine() = default;
-
-      void prepare(rclcpp::Duration duration)
-      {
-        hub_.set_ready(duration);
-      }
     };
   }
 }

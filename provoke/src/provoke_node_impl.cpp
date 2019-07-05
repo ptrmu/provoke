@@ -7,11 +7,22 @@
 namespace provoke
 {
 
+  // ==============================================================================
+  // ProvokeNodeImpl class
+  // ==============================================================================
+
   ProvokeNodeImpl::ProvokeNodeImpl(rclcpp::Node &node) :
-    node_{node},
-    sm_manager_{sm_manager_factory(*this)},
-    sm_send_action_{sm_send_action_factory(*this)}
-  {}
+    node_{node}, sm_manager_{sm_manager_factory(*this)}
+  {
+    sm_prepare(*sm_manager_, "out_back");
+
+    timer_ = node_.create_wall_timer(
+      std::chrono::milliseconds{timer_interval_ms},
+      [this]() -> void
+      {
+        sm_manager_->state().on_timer(node_.now());
+      });
+  }
 
   ProvokeNodeImpl::~ProvokeNodeImpl()
   {}
@@ -20,20 +31,21 @@ namespace provoke
   // ProvokeNode class
   // ==============================================================================
 
-
   class ProvokeNode : public rclcpp::Node
   {
     ProvokeNodeImpl impl_;
 
   public:
-    ProvokeNode()
-      : Node("provoke_node"), impl_(*this)
-    {}
+    ProvokeNode(rclcpp::NodeOptions &options)
+      : Node("provoke_node", options), impl_(*this)
+    {
+      RCLCPP_INFO(get_logger(), "provoke_node ready");
+    }
   };
 
-  std::unique_ptr<rclcpp::Node> node_factory()
+  std::shared_ptr<rclcpp::Node> node_factory(rclcpp::NodeOptions &options)
   {
-    return std::unique_ptr<rclcpp::Node>(new ProvokeNode());
+    return std::shared_ptr<rclcpp::Node>(new ProvokeNode(options));
   }
 
 }

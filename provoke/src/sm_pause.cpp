@@ -25,7 +25,7 @@ namespace provoke
 
   void sm_prepare(sm_pause::Machine &machine, rclcpp::Duration duration)
   {
-    machine.prepare(duration);
+    machine.hub_.prepare(duration);
   }
 
 }

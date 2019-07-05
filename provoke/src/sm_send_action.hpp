@@ -21,13 +21,15 @@ namespace provoke
       Machine &machine_;
 
     public:
-      Hub(Machine &machine) :
-        machine_{machine}
+      const std::string action_;
+
+      Hub(Machine &machine, const std::string &action) :
+        machine_{machine}, action_{action}
       {}
 
-      void ready(int i);
+      void set_ready(int i);
 
-      void waiting();
+      void set_waiting();
     };
 
     // ==============================================================================
@@ -41,19 +43,19 @@ namespace provoke
 
     public:
       Waiting(provoke::ProvokeNodeImpl &impl, Hub &hub) :
-        StateInterface(impl, "Waiting"), impl_(impl), hub_(hub)
+        StateInterface(impl, "waiting"), impl_(impl), hub_(hub)
       {}
 
-      virtual bool on_timer(rclcpp::Time now) override
+      bool on_timer(rclcpp::Time now) override
       {
-        (void)now;
-        hub_.ready(3);
+        (void) now;
+        hub_.set_ready(3);
         return false;
       }
 
-      virtual bool on_tello_response(tello_msgs::msg::TelloResponse * msg) override
+      bool on_tello_response(tello_msgs::msg::TelloResponse *msg) override
       {
-        (void)msg;
+        (void) msg;
         return false;
       }
     };
@@ -69,7 +71,7 @@ namespace provoke
 
     public:
       Ready(provoke::ProvokeNodeImpl &impl, Hub &hub) :
-        StateInterface(impl, "Ready"), impl_(impl), hub_(hub)
+        StateInterface(impl, "ready"), impl_(impl), hub_(hub)
       {}
 
       void prepare(int i)
@@ -77,15 +79,16 @@ namespace provoke
         (void) i;
       }
 
-      virtual bool on_timer(rclcpp::Time now) override
+      bool on_timer(rclcpp::Time now) override
       {
-        (void)now;        hub_.waiting();
+        (void) now;
+        hub_.set_waiting();
         return false;
       }
 
-      virtual bool on_tello_response(tello_msgs::msg::TelloResponse * msg) override
+      bool on_tello_response(tello_msgs::msg::TelloResponse *msg) override
       {
-        (void)msg;
+        (void) msg;
         return false;
       }
     };
@@ -96,14 +99,13 @@ namespace provoke
 
     class Machine : public StateMachineInterface
     {
-      Hub hub_;
-
     public:
+      Hub hub_;
       Ready ready_;
       Waiting waiting_;
 
-      Machine(provoke::ProvokeNodeImpl &impl)
-        : StateMachineInterface{impl, "Send Action"}, hub_{*this}, ready_{impl, hub_}, waiting_{impl, hub_}
+      Machine(provoke::ProvokeNodeImpl &impl, const std::string &action)
+        : StateMachineInterface{impl, "sm_send_action"}, hub_{*this, action}, ready_{impl, hub_}, waiting_{impl, hub_}
       {}
 
       ~Machine() = default;

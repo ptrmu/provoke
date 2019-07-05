@@ -5,26 +5,18 @@
 
 #include "state_machine_interface.hpp"
 
-namespace rclcpp
-{
-  class Node;
-}
-
-namespace sm_manager
-{
-  class Machine;
-}
-
 namespace provoke
 {
   class ProvokeNodeImpl
   {
   public:
     rclcpp::Node &node_;
+    const long timer_interval_ms = 10;
 
   private:
-    std::unique_ptr<StateMachineInterface> sm_manager_;
-    std::unique_ptr<StateMachineInterface> sm_send_action_;
+    std::unique_ptr<sm_manager::Machine> sm_manager_;
+    rclcpp::TimerBase::SharedPtr timer_{};
+
 
   public:
     ProvokeNodeImpl(rclcpp::Node &node);

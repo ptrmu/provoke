@@ -34,7 +34,8 @@ add_executable(provoke_node
   src/state_machine_interface.cpp
   src/provoke_node_main.cpp
   src/sm_pause.cpp
-  src/sm_go.cpp)
+  src/sm_go.cpp
+  src/sm_out_back.cpp)
 
 target_include_directories(provoke_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
