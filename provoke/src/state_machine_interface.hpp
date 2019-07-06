@@ -3,6 +3,7 @@
 
 #include <string>
 #include <memory>
+#include <map>
 
 #include "rclcpp/rclcpp.hpp"
 #include "tello_msgs/msg/tello_response.hpp"
@@ -35,6 +36,8 @@ namespace provoke
     StateInterface *state_;
 
   public:
+    using StateMachineArgs = std::map<std::string, std::string>;
+
     ProvokeNodeImpl &impl_;
     std::string name_;
 
@@ -56,6 +59,10 @@ namespace provoke
     {
       state_ = &state;
     }
+
+    virtual std::string validate_args(const StateMachineArgs &args);
+
+    virtual void prepare_from_args(const StateMachineArgs &args);
   };
 
   namespace sm_manager

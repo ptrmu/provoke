@@ -19,4 +19,15 @@ namespace provoke
     RCLCPP_ERROR(impl_.node_.get_logger(), "Action 'on_tello_response()' not overridden for state %s", name_.c_str());
     return false;
   }
+
+  std::string StateMachineInterface::validate_args(const StateMachineArgs &args)
+  {
+    (void) args;
+    return std::string{};
+  }
+
+  void StateMachineInterface::prepare_from_args(const StateMachineArgs &args)
+  {
+    (void) args;
+  }
 }

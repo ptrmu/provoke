@@ -1,17 +1,48 @@
 
 #include "sm_manager.hpp"
 
+#include "sm_go.hpp"
 #include "sm_out_back.hpp"
+#include "sm_pause.hpp"
+#include "sm_send_action.hpp"
 
 namespace provoke
 {
   namespace sm_manager
   {
     Hub::Hub(Machine &machine) :
-      machine_{machine}, sm_out_back_{sm_out_back_factory(machine_.impl_)}
-    {}
+      machine_{machine}
+    {
+      sm_land_ = sm_send_action_factory(machine_.impl_, "land");
+      sm_takeoff_ = sm_send_action_factory(machine_.impl_, "takeoff");
+      sm_go_ = sm_go_factory(machine_.impl_);
+      sm_pause_ = sm_pause_factory(machine_.impl_);
+      sm_out_back_ = sm_out_back_factory(machine_.impl_);
+
+      sm_map.emplace("land", &*sm_land_);
+      sm_map.emplace("takeoff", &*sm_takeoff_);
+      sm_map.emplace("go", &*sm_go_);
+      sm_map.emplace("pause", &*sm_pause_);
+      sm_map.emplace("out_back", &*sm_out_back_);
+
+#undef CXT_MACRO_MEMBER
+#define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_LOAD_PARAMETER(machine_.impl_.node_, (*this), n, t, d)
+      CXT_MACRO_INIT_PARAMETERS(SM_MANAGER_ALL_PARAMS, validate_parameters)
+
+#undef CXT_MACRO_MEMBER
+#define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_PARAMETER_CHANGED((*this), n, t)
+      CXT_MACRO_REGISTER_PARAMETERS_CHANGED(machine_.impl_.node_, SM_MANAGER_ALL_PARAMS, validate_parameters)
+    }
 
     Hub::~Hub() = default;
+
+    void Hub::validate_parameters()
+    {
+
+#undef CXT_MACRO_MEMBER
+#define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_LOG_PARAMETER(RCLCPP_INFO, machine_.impl_.node_.get_logger(), (*this), n, t, d)
+      SM_MANAGER_ALL_PARAMS
+    }
 
     void Hub::prepare(const std::string &poke_name)
     {
