@@ -26,6 +26,7 @@ endif()
 find_package(tello_msgs REQUIRED)
 find_package(ros2_shared REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(yaml_cpp_vendor REQUIRED)
 
 add_executable(provoke_node
   src/provoke_node_impl.cpp
@@ -43,11 +44,14 @@ target_include_directories(provoke_node PUBLIC
   PUBLIC ${tello_msgs_INCLUDE_DIRS}
   PUBLIC ${ros2_shared_INCLUDE_DIRS}
   PUBLIC ${rclcpp_INCLUDE_DIRS}
-)
+  PUBLIC ${yaml_cpp_vendor_INCLUDE_DIRS}
+  )
+
 target_link_libraries(provoke_node
- ${tello_msgs_LIBRARIES}
- ${ros2_shared_LIBRARIES}
- ${rclcpp_LIBRARIES}
+  ${tello_msgs_LIBRARIES}
+  ${ros2_shared_LIBRARIES}
+  ${rclcpp_LIBRARIES}
+  ${yaml_cpp_vendor_LIBRARIES}
 )
 
 install(

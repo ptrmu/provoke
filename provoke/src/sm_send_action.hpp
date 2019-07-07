@@ -27,9 +27,43 @@ namespace provoke
         machine_{machine}, action_{action}
       {}
 
-      void set_ready(int i);
+      void prepare();
+
+      void set_ready();
 
       void set_waiting();
+    };
+
+    // ==============================================================================
+    // Ready state
+    // ==============================================================================
+
+    class Ready : public provoke::StateInterface
+    {
+      provoke::ProvokeNodeImpl &impl_;
+      Hub &hub_;
+
+    public:
+      Ready(provoke::ProvokeNodeImpl &impl, Hub &hub) :
+        StateInterface(impl, "ready"), impl_(impl), hub_(hub)
+      {}
+
+      void prepare()
+      {
+      }
+
+      bool on_timer(rclcpp::Time now) override
+      {
+        (void) now;
+        hub_.set_waiting();
+        return false;
+      }
+
+      bool on_tello_response(tello_msgs::msg::TelloResponse *msg) override
+      {
+        (void) msg;
+        return false;
+      }
     };
 
     // ==============================================================================
@@ -49,40 +83,7 @@ namespace provoke
       bool on_timer(rclcpp::Time now) override
       {
         (void) now;
-        hub_.set_ready(3);
-        return false;
-      }
-
-      bool on_tello_response(tello_msgs::msg::TelloResponse *msg) override
-      {
-        (void) msg;
-        return false;
-      }
-    };
-
-    // ==============================================================================
-    // Ready state
-    // ==============================================================================
-
-    class Ready : public provoke::StateInterface
-    {
-      provoke::ProvokeNodeImpl &impl_;
-      Hub &hub_;
-
-    public:
-      Ready(provoke::ProvokeNodeImpl &impl, Hub &hub) :
-        StateInterface(impl, "ready"), impl_(impl), hub_(hub)
-      {}
-
-      void prepare(int i)
-      {
-        (void) i;
-      }
-
-      bool on_timer(rclcpp::Time now) override
-      {
-        (void) now;
-        hub_.set_waiting();
+        hub_.set_ready();
         return false;
       }
 
@@ -109,6 +110,10 @@ namespace provoke
       {}
 
       ~Machine() = default;
+
+      std::string validate_args(const StateMachineArgs &args) override;
+
+      void prepare_from_args(const StateMachineArgs &args) override;
     };
   }
 }

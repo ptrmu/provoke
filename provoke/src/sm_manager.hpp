@@ -13,10 +13,12 @@ namespace provoke
   {
     class Machine;
 
-#define PK1 "land\n"
-#define PK2 "- takeoff\n- land\n"
-#define PK3 "- takeoff\n- pause: 1.5\n- land\n"
-#define PK4 "- takeoff\n- out_back: {vel: [0.0, 1.0, 0.1], dur_out: 1.5, dur_back: 0.5, hz: 5}\n- land\n"
+    class YamlParser;
+
+#define PK1 "\nland"
+#define PK2 "\n- takeoff\n- land"
+#define PK3 "\n- takeoff\n- pause: 1.5\n- land"
+#define PK4 "\n- takeoff\n- out_back: {vel_x: 0.0, vel_x: 1.0, vel_x: 0.1, dur_out: 1.5, dur_back: 0.5, hz: 5}\n- land"
 
 #define SM_MANAGER_ALL_PARAMS \
   CXT_MACRO_MEMBER(poke_list_go, int, 0) /* poke list to execute */\
@@ -40,7 +42,9 @@ namespace provoke
       std::unique_ptr<sm_pause::Machine> sm_pause_;
       std::unique_ptr<sm_out_back::Machine> sm_out_back_;
 
-      std::map<std::string, StateMachineInterface *> sm_map{};
+      std::map<std::string, StateMachineInterface *> sm_map_{};
+
+      bool validate_sm_args(YamlParser &yaml_parser, int poke_list_idx);
 
       void validate_parameters();
 
@@ -48,6 +52,14 @@ namespace provoke
 #undef CXT_MACRO_MEMBER
 #define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_DEFINE_MEMBER(n, t, d)
       SM_MANAGER_ALL_PARAMS
+
+      std::array<std::string const *, 4> poke_lists_{
+        &poke_list_1_,
+        &poke_list_2_,
+        &poke_list_3_,
+        &poke_list_4_,
+      };
+      std::array<bool, std::tuple_size<decltype(poke_lists_)>::value> poke_list_valids_;
 
       Hub(Machine &machine);
 

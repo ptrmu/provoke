@@ -95,6 +95,8 @@ namespace provoke
 
     class Machine : public StateMachineInterface
     {
+      std::string _validate_args(const StateMachineArgs &args,  rclcpp::Duration &duration);
+
     public:
       Hub hub_;
       Ready ready_;
@@ -106,6 +108,10 @@ namespace provoke
       {}
 
       ~Machine() = default;
+
+      std::string validate_args(const StateMachineArgs &args) override;
+
+      void prepare_from_args(const StateMachineArgs &args) override;
     };
   }
 }

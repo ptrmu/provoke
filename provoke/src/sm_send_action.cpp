@@ -5,15 +5,45 @@ namespace provoke
 {
   namespace sm_send_action
   {
-    void Hub::set_ready(int i)
+    void Hub::prepare()
     {
-      machine_.ready_.prepare(i);
+      RCLCPP_DEBUG(machine_.impl_.node_.get_logger(),
+        "Prepare sm:%s(%s)",
+        machine_.name_, action_);
+      set_ready();
+    }
+
+    void Hub::set_ready()
+    {
+      machine_.ready_.prepare();
       machine_.set_state(machine_.ready_);
     }
 
     void Hub::set_waiting()
     {
       machine_.set_state(machine_.waiting_);
+    }
+
+    static std::string _validate_args(const StateMachineInterface::StateMachineArgs &args)
+    {
+      if (!args.empty()) {
+        std::ostringstream oss{};
+        oss << "send_action takes no arguments.";
+        return oss.str();
+      }
+      return std::string{};
+    }
+
+    std::string Machine::validate_args(const StateMachineArgs &args)
+    {
+      return _validate_args(args);
+    }
+
+    void Machine::prepare_from_args(const StateMachineArgs &args)
+    {
+      if (_validate_args(args).empty()) {
+        hub_.prepare();
+      }
     }
   }
 
