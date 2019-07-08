@@ -15,13 +15,13 @@ namespace provoke
 
     class YamlParser;
 
-#define PK1 "\nland"
+#define PK1 "\npause: 1.5"
 #define PK2 "\n- takeoff\n- land"
 #define PK3 "\n- takeoff\n- pause: 1.5\n- land"
 #define PK4 "\n- takeoff\n- out_back: {vel_x: 0.0, vel_x: 1.0, vel_x: 0.1, dur_out: 1.5, dur_back: 0.5, hz: 5}\n- land"
 
 #define SM_MANAGER_ALL_PARAMS \
-  CXT_MACRO_MEMBER(poke_list_go, int, 0) /* poke list to execute */\
+  CXT_MACRO_MEMBER(poke_list_go, int, 1) /* poke list to execute */\
   CXT_MACRO_MEMBER(poke_list_1, std::string, PK1) /* poke_list 1 */ \
   CXT_MACRO_MEMBER(poke_list_2, std::string, PK2) /* poke_list 1 */ \
   CXT_MACRO_MEMBER(poke_list_3, std::string, PK3) /* poke_list 1 */ \
@@ -44,7 +44,9 @@ namespace provoke
 
       std::map<std::string, StateMachineInterface *> sm_map_{};
 
-      bool validate_sm_args(YamlParser &yaml_parser, int poke_list_idx);
+      bool validate_sm_args(std::vector<std::string> &poke_name_list,
+                            std::vector<StateMachineInterface::StateMachineArgs> &poke_args_list,
+                            int poke_list_idx);
 
       void validate_parameters();
 
@@ -65,52 +67,58 @@ namespace provoke
 
       ~Hub();
 
-      void prepare(const std::string &poke_name);
+      StateMachineInterface *find_state_machine(std::string &poke_name);
 
-      void set_state_a(StateMachineInterface *sub_machine);
+      void prepare();
+
+      void set_running(const std::string &poke_list);
 
       void set_complete();
     };
 
     // ==============================================================================
-    // StateA state
+    // Running state
     // ==============================================================================
 
-    class StateA : public provoke::StateInterface
+    // Note: This is a state in the base state machine. It should keep running
+    // and never return false.
+    class Running : public provoke::StateInterface
     {
       provoke::ProvokeNodeImpl &impl_;
       Hub &hub_;
+      std::vector<std::string> poke_name_list_{};
+      std::vector<StateMachineInterface::StateMachineArgs> poke_args_list_{};
 
-      StateMachineInterface *sub_machine_;
+      int current_poke_idx_;
+      StateMachineInterface *current_sm_poke_;
 
       bool is_done(bool ret)
       {
-        if (ret) {
-          return true;
+        if (!ret) {
+          if (!prepare_sm_poke(current_poke_idx_ + 1)) {
+            hub_.set_complete();
+          }
         }
-
-        hub_.set_complete();
-        return false;
+        return true; // always return true from the manager state machine
       }
 
     public:
-      StateA(provoke::ProvokeNodeImpl &impl, Hub &hub) :
-        StateInterface(impl, "state_a"), impl_(impl), hub_(hub)
+      Running(provoke::ProvokeNodeImpl &impl, Hub &hub) :
+        StateInterface(impl, "running"), impl_(impl), hub_(hub)
       {}
 
-      void prepare(StateMachineInterface *sub_machine)
-      {
-        sub_machine_ = sub_machine;
-      }
+      bool prepare_sm_poke(int idx);
+
+      bool prepare(const std::string &poke_list);
 
       bool on_timer(rclcpp::Time now) override
       {
-        return is_done(sub_machine_->state().on_timer(now));
+        return is_done(current_sm_poke_->state().on_timer(now));
       }
 
       bool on_tello_response(tello_msgs::msg::TelloResponse *msg) override
       {
-        return is_done(sub_machine_->state().on_tello_response(msg));
+        return is_done(current_sm_poke_->state().on_tello_response(msg));
       }
     };
 
@@ -118,6 +126,8 @@ namespace provoke
     // Complete state
     // ==============================================================================
 
+    // Note: This is a state in the base state machine. It should keep running
+    // and never return false.
     class Complete : public provoke::StateInterface
     {
       provoke::ProvokeNodeImpl &impl_;
@@ -130,7 +140,6 @@ namespace provoke
 
       void prepare()
       {
-        RCLCPP_INFO(impl_.node_.get_logger(), "Entering Complete state");
       }
 
       bool on_timer(rclcpp::Time now) override
@@ -140,15 +149,31 @@ namespace provoke
         // test to see if the parameter poke_list_go is non-zero. If it
         // is then we will load and execute the indicated poke_list.
         if (hub_.poke_list_go_ == 0) {
-          return false;
+          return true;
         }
-        return false;
+
+        // The poke_lists are numbered starting from 1, but they are indexed starting from 0.
+        auto poke_list_go = hub_.poke_list_go_ - 1;
+
+        if (poke_list_go < 0 || static_cast<size_t>(poke_list_go) >= hub_.poke_lists_.size()) {
+          hub_.poke_list_go_ = 0; // ToDo: set parameter on node as well
+          return true;
+        }
+
+        if (!hub_.poke_list_valids_[poke_list_go]) {
+          hub_.poke_list_go_ = 0;
+          return true;
+        }
+
+        hub_.set_running(*hub_.poke_lists_[poke_list_go]);
+        hub_.poke_list_go_ = 0;
+        return true;
       }
 
       bool on_tello_response(tello_msgs::msg::TelloResponse *msg) override
       {
         (void) msg;
-        return false;
+        return true;
       }
     };
 
@@ -160,11 +185,11 @@ namespace provoke
     {
     public:
       Hub hub_;
-      StateA state_a_;
+      Running running_;
       Complete complete_;
 
       Machine(provoke::ProvokeNodeImpl &impl)
-        : StateMachineInterface{impl, "sm_manager"}, hub_{*this}, state_a_{impl, hub_}, complete_{impl, hub_}
+        : StateMachineInterface{impl, "sm_manager"}, hub_{*this}, running_{impl, hub_}, complete_{impl, hub_}
       {}
 
       ~Machine() = default;

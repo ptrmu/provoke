@@ -25,10 +25,7 @@ namespace provoke
         machine_{machine}
       {}
 
-      void prepare(rclcpp::Duration duration)
-      {
-        set_ready(duration);
-      }
+      void prepare(rclcpp::Duration duration);
 
       void set_ready(rclcpp::Duration duration);
 
@@ -95,7 +92,7 @@ namespace provoke
 
     class Machine : public StateMachineInterface
     {
-      std::string _validate_args(const StateMachineArgs &args,  rclcpp::Duration &duration);
+      std::string _validate_args(const StateMachineArgs &args, rclcpp::Duration &duration);
 
     public:
       Hub hub_;

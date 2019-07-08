@@ -72,7 +72,7 @@ namespace provoke
 
   std::unique_ptr<sm_manager::Machine> sm_manager_factory(ProvokeNodeImpl &impl);
 
-  void sm_prepare(sm_manager::Machine &machine, const std::string &poke_name);
+  void sm_prepare(sm_manager::Machine &machine);
 
   namespace sm_send_action
   {
