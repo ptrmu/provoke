@@ -7,9 +7,9 @@ namespace provoke
   {
     void Hub::prepare(rclcpp::Duration duration)
     {
-      RCLCPP_DEBUG(machine_.impl_.node_.get_logger(),
-                   "Prepare sm:%s (duration:%7.3f)",
-                   machine_.name_, duration.seconds());
+      RCLCPP_INFO(machine_.impl_.node_.get_logger(),
+                  "Prepare sm:%s (duration:%7.3f sec.)",
+                  machine_.name_.c_str(), duration.seconds());
       set_ready(duration);
     }
 
@@ -27,28 +27,17 @@ namespace provoke
 
     std::string Machine::_validate_args(const StateMachineArgs &args, rclcpp::Duration &duration)
     {
-      (void) duration;
       std::ostringstream oss{};
       if (args.size() != 1) {
-        oss << "send_action takes no arguments.";
-        return oss.str();
+        oss << "sm_pause takes 1 argument.";
       }
-      /*
-       * // stod example
-#include <iostream>   // std::cout
-#include <string>     // std::string, std::stod
 
-int main ()
-{
-  std::string orbits ("365.24 29.53");
-  std::string::size_type sz;     // alias of size_t
+      auto pair = args.begin();
+      char *next;
+      auto secs = std::strtod(pair->second.c_str(), &next);
+      duration = rclcpp::Duration(std::chrono::milliseconds(static_cast<int>(secs * 1000)));
 
-  double earth = std::stod (orbits,&sz);
-  double moon = std::stod (orbits.substr(sz));
-  std::cout << "The moon completes " << (earth/moon) << " orbits per Earth year.\n";
-  return 0;
-       */
-      return std::string{};
+      return oss.str();
     }
 
     std::string Machine::validate_args(const StateMachineArgs &args)

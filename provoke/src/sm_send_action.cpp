@@ -7,7 +7,7 @@ namespace provoke
   {
     void Hub::prepare()
     {
-      RCLCPP_DEBUG(machine_.impl_.node_.get_logger(),
+      RCLCPP_INFO(machine_.impl_.node_.get_logger(),
         "Prepare sm:%s(%s)",
         machine_.name_, action_);
       set_ready();

@@ -15,7 +15,7 @@ namespace provoke
 
     class YamlParser;
 
-#define PK1 "\npause: 1.5"
+#define PK1 "\n- pause: 1.5\n- pause: 0.5\n- pause: 2.5\n- pause: 1"
 #define PK2 "\n- takeoff\n- land"
 #define PK3 "\n- takeoff\n- pause: 1.5\n- land"
 #define PK4 "\n- takeoff\n- out_back: {vel_x: 0.0, vel_x: 1.0, vel_x: 0.1, dur_out: 1.5, dur_back: 0.5, hz: 5}\n- land"

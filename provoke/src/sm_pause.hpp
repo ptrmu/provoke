@@ -49,7 +49,7 @@ namespace provoke
 
       void prepare(rclcpp::Duration duration)
       {
-        duration = duration_;
+        duration_ = duration;
       }
 
       bool on_timer(rclcpp::Time now) override
