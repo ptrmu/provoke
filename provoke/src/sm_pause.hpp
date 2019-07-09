@@ -25,11 +25,11 @@ namespace provoke
         machine_{machine}
       {}
 
-      void prepare(rclcpp::Duration duration);
+      SMResult prepare(rclcpp::Duration duration);
 
-      void set_ready(rclcpp::Duration duration);
+      SMResult set_ready(rclcpp::Duration duration);
 
-      void set_waiting(rclcpp::Time end_time);
+      SMResult set_waiting(rclcpp::Time end_time);
     };
 
     // ==============================================================================
@@ -47,16 +47,16 @@ namespace provoke
         StateInterface(impl, "ready"), impl_(impl), hub_(hub)
       {}
 
-      void prepare(rclcpp::Duration duration)
+      SMResult prepare(rclcpp::Duration duration)
       {
         duration_ = duration;
+        return SMResult::success();
       }
 
-      bool on_timer(rclcpp::Time now) override
+      SMResult on_timer(rclcpp::Time now) override
       {
         auto end_time = now + duration_;
-        hub_.set_waiting(end_time);
-        return true;
+        return hub_.set_waiting(end_time);
       }
     };
 
@@ -75,14 +75,15 @@ namespace provoke
         StateInterface(impl, "waiting"), impl_(impl), hub_(hub)
       {}
 
-      void prepare(rclcpp::Time end_time)
+      SMResult prepare(rclcpp::Time end_time)
       {
         end_time_ = end_time;
+        return SMResult::success();
       }
 
-      bool on_timer(rclcpp::Time now) override
+      SMResult on_timer(rclcpp::Time now) override
       {
-        return now < end_time_;
+        return now < end_time_ ? SMResult::success() : SMResult::conclusion();
       }
     };
 
@@ -92,7 +93,7 @@ namespace provoke
 
     class Machine : public StateMachineInterface
     {
-      std::string _validate_args(const StateMachineArgs &args, rclcpp::Duration &duration);
+      SMResult _validate_args(const StateMachineArgs &args, rclcpp::Duration &duration);
 
     public:
       Hub hub_;
@@ -106,9 +107,9 @@ namespace provoke
 
       ~Machine() = default;
 
-      std::string validate_args(const StateMachineArgs &args) override;
+      SMResult validate_args(const StateMachineArgs &args) override;
 
-      void prepare_from_args(const StateMachineArgs &args) override;
+      SMResult prepare_from_args(const StateMachineArgs &args) override;
     };
   }
 }

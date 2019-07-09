@@ -26,11 +26,11 @@ namespace provoke
         machine_{machine}
       {}
 
-      void prepare(tf2::Vector3 velocity_mps, rclcpp::Duration duration, double msg_rate_hz);
+      SMResult prepare(tf2::Vector3 velocity_mps, rclcpp::Duration duration, double msg_rate_hz);
 
-      void set_ready();
+      SMResult set_ready();
 
-      void set_waiting(rclcpp::Time end_time, rclcpp::Time next_msg_time, rclcpp::Duration inter_msg_duration);
+      SMResult set_waiting(rclcpp::Time end_time, rclcpp::Time next_msg_time, rclcpp::Duration inter_msg_duration);
 
       void send_go();
     };
@@ -51,7 +51,7 @@ namespace provoke
         StateInterface(impl, "ready"), impl_(impl), hub_(hub)
       {}
 
-      void prepare(rclcpp::Duration duration, double msg_rate_hz)
+      SMResult prepare(rclcpp::Duration duration, double msg_rate_hz)
       {
         duration_ = duration;
         auto milliseconds = msg_rate_hz == 0.0 ?
@@ -60,9 +60,11 @@ namespace provoke
         inter_msg_duration_ = milliseconds == std::chrono::milliseconds::zero() ?
                               rclcpp::Duration{std::chrono::milliseconds::zero()} :
                               rclcpp::Duration(milliseconds);
+
+        return SMResult::success();
       }
 
-      bool on_timer(rclcpp::Time now) override
+      SMResult on_timer(rclcpp::Time now) override
       {
         hub_.send_go();
 
@@ -71,7 +73,8 @@ namespace provoke
                              rclcpp::Time{} : now + inter_msg_duration_;
 
         hub_.set_waiting(end_time, next_msg_time, inter_msg_duration_);
-        return true;
+
+        return SMResult::success();
       }
     };
 
@@ -92,17 +95,18 @@ namespace provoke
         StateInterface(impl, "waiting"), impl_(impl), hub_(hub)
       {}
 
-      void prepare(rclcpp::Time end_time, rclcpp::Time next_msg_time, rclcpp::Duration inter_msg_duration)
+      SMResult prepare(rclcpp::Time end_time, rclcpp::Time next_msg_time, rclcpp::Duration inter_msg_duration)
       {
         end_time_ = end_time;
         next_msg_time_ = next_msg_time;
         inter_msg_duration_ = inter_msg_duration;
+        return SMResult::success();
       }
 
-      bool on_timer(rclcpp::Time now) override
+      SMResult on_timer(rclcpp::Time now) override
       {
         if (now >= end_time_) {
-          return false;
+          return SMResult::failure();
         }
 
         if (next_msg_time_.nanoseconds() != 0 && now >= next_msg_time_) {
@@ -112,7 +116,7 @@ namespace provoke
           }
         }
 
-        return true;
+        return SMResult::success();
       }
     };
 

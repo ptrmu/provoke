@@ -5,45 +5,50 @@ namespace provoke
 {
   namespace sm_send_action
   {
-    void Hub::prepare()
+    SMResult Hub::prepare()
     {
       RCLCPP_INFO(machine_.impl_.node_.get_logger(),
-        "Prepare sm:%s(%s)",
-        machine_.name_, action_);
-      set_ready();
+                  "Prepare sm:%s(%s)",
+                  machine_.name_.c_str(), action_.c_str());
+      return set_ready();
     }
 
-    void Hub::set_ready()
+    SMResult Hub::set_ready()
     {
-      machine_.ready_.prepare();
-      machine_.set_state(machine_.ready_);
+      auto res = machine_.ready_.prepare();
+      if (!res.succeeded()) {
+        return res;
+      }
+      return machine_.set_state(machine_.ready_);
     }
 
-    void Hub::set_waiting()
+    SMResult Hub::set_waiting()
     {
-      machine_.set_state(machine_.waiting_);
+      return machine_.set_state(machine_.waiting_);
     }
 
-    static std::string _validate_args(const StateMachineInterface::StateMachineArgs &args)
+    static SMResult _validate_args(const StateMachineInterface::StateMachineArgs &args)
     {
       if (!args.empty()) {
         std::ostringstream oss{};
         oss << "send_action takes no arguments.";
-        return oss.str();
+        return SMResult{SMResultCodes::failure, oss.str()};
       }
-      return std::string{};
+      return SMResult::success();
     }
 
-    std::string Machine::validate_args(const StateMachineArgs &args)
+    SMResult Machine::validate_args(const StateMachineArgs &args)
     {
       return _validate_args(args);
     }
 
-    void Machine::prepare_from_args(const StateMachineArgs &args)
+    SMResult Machine::prepare_from_args(const StateMachineArgs &args)
     {
-      if (_validate_args(args).empty()) {
-        hub_.prepare();
+      auto res = _validate_args(args);
+      if (!res.succeeded()) {
+        return res;
       }
+      return hub_.prepare();
     }
   }
 

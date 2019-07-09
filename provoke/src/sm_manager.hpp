@@ -44,9 +44,9 @@ namespace provoke
 
       std::map<std::string, StateMachineInterface *> sm_map_{};
 
-      bool validate_sm_args(std::vector<std::string> &poke_name_list,
-                            std::vector<StateMachineInterface::StateMachineArgs> &poke_args_list,
-                            int poke_list_idx);
+      SMResult validate_sm_args(std::vector<std::string> &poke_name_list,
+                                std::vector<StateMachineInterface::StateMachineArgs> &poke_args_list,
+                                int poke_list_idx);
 
       void validate_parameters();
 
@@ -69,11 +69,11 @@ namespace provoke
 
       StateMachineInterface *find_state_machine(std::string &poke_name);
 
-      void prepare();
+      SMResult prepare();
 
-      void set_running(const std::string &poke_list);
+      SMResult set_running(const std::string &poke_list);
 
-      void set_complete();
+      SMResult set_complete();
     };
 
     // ==============================================================================
@@ -92,14 +92,14 @@ namespace provoke
       int current_poke_idx_;
       StateMachineInterface *current_sm_poke_;
 
-      bool is_done(bool ret)
+      SMResult is_done(SMResult res)
       {
-        if (!ret) {
-          if (!prepare_sm_poke(current_poke_idx_ + 1)) {
+        if (!res.succeeded()) {
+          if (!prepare_sm_poke(current_poke_idx_ + 1).succeeded()) {
             hub_.set_complete();
           }
         }
-        return true; // always return true from the manager state machine
+        return SMResult::success(); // always return success from the manager state machine
       }
 
     public:
@@ -107,16 +107,16 @@ namespace provoke
         StateInterface(impl, "running"), impl_(impl), hub_(hub)
       {}
 
-      bool prepare_sm_poke(int idx);
+      SMResult prepare_sm_poke(int idx);
 
-      bool prepare(const std::string &poke_list);
+      SMResult prepare(const std::string &poke_list);
 
-      bool on_timer(rclcpp::Time now) override
+      SMResult on_timer(rclcpp::Time now) override
       {
         return is_done(current_sm_poke_->state().on_timer(now));
       }
 
-      bool on_tello_response(tello_msgs::msg::TelloResponse *msg) override
+      SMResult on_tello_response(tello_msgs::msg::TelloResponse *msg) override
       {
         return is_done(current_sm_poke_->state().on_tello_response(msg));
       }
@@ -138,18 +138,19 @@ namespace provoke
         StateInterface(impl, "complete"), impl_(impl), hub_(hub)
       {}
 
-      void prepare()
+      SMResult prepare()
       {
+        return SMResult::success();
       }
 
-      bool on_timer(rclcpp::Time now) override
+      SMResult on_timer(rclcpp::Time now) override
       {
         (void) now;
 
         // test to see if the parameter poke_list_go is non-zero. If it
         // is then we will load and execute the indicated poke_list.
         if (hub_.poke_list_go_ == 0) {
-          return true;
+          return SMResult::success();
         }
 
         // The poke_lists are numbered starting from 1, but they are indexed starting from 0.
@@ -157,23 +158,23 @@ namespace provoke
 
         if (poke_list_go < 0 || static_cast<size_t>(poke_list_go) >= hub_.poke_lists_.size()) {
           hub_.poke_list_go_ = 0; // ToDo: set parameter on node as well
-          return true;
+          return SMResult::success();
         }
 
         if (!hub_.poke_list_valids_[poke_list_go]) {
           hub_.poke_list_go_ = 0;
-          return true;
+          return SMResult::success();
         }
 
         hub_.set_running(*hub_.poke_lists_[poke_list_go]);
         hub_.poke_list_go_ = 0;
-        return true;
+        return SMResult::success();
       }
 
-      bool on_tello_response(tello_msgs::msg::TelloResponse *msg) override
+      SMResult on_tello_response(tello_msgs::msg::TelloResponse *msg) override
       {
         (void) msg;
-        return true;
+        return SMResult::success();
       }
     };
 

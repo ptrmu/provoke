@@ -153,23 +153,23 @@ namespace provoke
     // Running class
     // ==============================================================================
 
-    bool Running::prepare_sm_poke(int idx)
+    SMResult Running::prepare_sm_poke(int idx)
     {
       if (idx < 0 || static_cast<size_t>(idx) >= poke_name_list_.size()) {
-        return false;
+        return SMResult::failure();
       }
 
       current_sm_poke_ = hub_.find_state_machine(poke_name_list_[idx]);
       if (current_sm_poke_ == nullptr) {
-        return false;
+        return SMResult::failure();
       }
 
       current_poke_idx_ = idx;
       current_sm_poke_->prepare_from_args(poke_args_list_[idx]);
-      return true;
+      return SMResult::success();
     }
 
-    bool Running::prepare(const std::string &poke_list)
+    SMResult Running::prepare(const std::string &poke_list)
     {
       YamlParser yaml_parser{poke_name_list_, poke_args_list_};
 
@@ -178,7 +178,7 @@ namespace provoke
 
       // If there are no pokes in the list, then don't move to this state.
       if (poke_name_list_.empty()) {
-        return false;
+        return SMResult::failure();
       }
 
       return prepare_sm_poke(0);
@@ -220,9 +220,9 @@ namespace provoke
       return pair == sm_map_.end() ? nullptr : pair->second;
     }
 
-    bool Hub::validate_sm_args(std::vector<std::string> &poke_name_list,
-                               std::vector<StateMachineInterface::StateMachineArgs> &poke_args_list,
-                               int poke_list_idx)
+    SMResult Hub::validate_sm_args(std::vector<std::string> &poke_name_list,
+                                   std::vector<StateMachineInterface::StateMachineArgs> &poke_args_list,
+                                   int poke_list_idx)
     {
       for (size_t i = 0; i < poke_name_list.size(); i += 1) {
 
@@ -230,22 +230,22 @@ namespace provoke
         auto sm_poke = find_state_machine(poke_name);
 
         if (sm_poke == nullptr) {
-          RCLCPP_INFO(machine_.impl_.node_.get_logger(),
-                      "YAML parse of poke_list_%d failed: poke with name %s does not exist (poke #%d).",
-                      poke_list_idx, poke_name.c_str(), i + 1);
-          return false;
+          RCLCPP_ERROR(machine_.impl_.node_.get_logger(),
+                       "YAML parse of poke_list_%d failed: poke with name %s does not exist (poke #%d).",
+                       poke_list_idx, poke_name.c_str(), i + 1);
+          return SMResult::failure();
         }
 
         auto validate_results = sm_poke->validate_args(poke_args_list[i]);
-        if (!validate_results.empty()) {
-          RCLCPP_INFO(machine_.impl_.node_.get_logger(),
-                      "YAML parse of poke_list_%d failed: poke %s (poke #%d) validate_args failed with error: '%s'.",
-                      poke_list_idx, poke_name.c_str(), i + 1, validate_results.c_str());
-          return false;
+        if (!validate_results.succeeded()) {
+          RCLCPP_ERROR(machine_.impl_.node_.get_logger(),
+                       "YAML parse of poke_list_%d failed: poke %s (poke #%d) validate_args failed with error: '%s'.",
+                       poke_list_idx, poke_name.c_str(), i + 1, validate_results.msg().c_str());
+          return SMResult::failure();
         }
       }
 
-      return true;
+      return SMResult::success();
     }
 
     void Hub::validate_parameters()
@@ -266,20 +266,28 @@ namespace provoke
                        "YAML parse of poke_list_%d failed with error: '%s'",
                        i + 1, yaml_parser.error_msg_.c_str());
 
-        } else if (validate_sm_args(poke_name_list, poke_args_list, i + 1)) {
-          poke_list_valids_[i] = true;
-          RCLCPP_INFO(machine_.impl_.node_.get_logger(),
-                      "YAML parse of poke_list_%d succeeded", i + 1);
+        } else {
+          auto res = validate_sm_args(poke_name_list, poke_args_list, i + 1);
+          if (!res.succeeded()) {
+            RCLCPP_ERROR(machine_.impl_.node_.get_logger(),
+                         "validate args of poke_list_%d failed with error: '%s'",
+                         i + 1, res.msg().c_str());
+
+          } else {
+            poke_list_valids_[i] = true;
+            RCLCPP_INFO(machine_.impl_.node_.get_logger(),
+                        "YAML parse of poke_list_%d succeeded", i + 1);
+          }
         }
       }
     }
 
-    void Hub::prepare()
+    SMResult Hub::prepare()
     {
       RCLCPP_INFO(machine_.impl_.node_.get_logger(),
-                   "Prepare sm:%s",
-                   machine_.name_.c_str());
-      set_complete();
+                  "Prepare sm:%s",
+                  machine_.name_.c_str());
+      return set_complete();
 
       //        sm_prepare(*sm_out_back_,
 //                   tf2::Vector3{0.0, 1.0, 0.0},
@@ -288,20 +296,23 @@ namespace provoke
 //                   0.0);
     }
 
-    void Hub::set_running(const std::string &poke_list)
+    SMResult Hub::set_running(const std::string &poke_list)
     {
-      if (machine_.running_.prepare(poke_list)) { ;
-        machine_.set_state(machine_.running_);
-
-      } else {
-        set_complete();
+      auto res = machine_.running_.prepare(poke_list);
+      if (!res.succeeded()) {
+        return set_complete();
       }
+
+      return machine_.set_state(machine_.running_);
     }
 
-    void Hub::set_complete()
+    SMResult Hub::set_complete()
     {
-      machine_.complete_.prepare();
-      machine_.set_state(machine_.complete_);
+      auto res = machine_.complete_.prepare();
+      if (!res.succeeded()) {
+        return res;
+      }
+      return machine_.set_state(machine_.complete_);
     }
   }
 
@@ -314,9 +325,9 @@ namespace provoke
     return std::make_unique<sm_manager::Machine>(impl);
   }
 
-  void sm_prepare(sm_manager::Machine &machine)
+  SMResult sm_prepare(sm_manager::Machine &machine)
   {
-    machine.hub_.prepare();
+    return machine.hub_.prepare();
   }
 
 }

@@ -26,8 +26,8 @@ namespace provoke
 
       Hub(Machine &machine);
 
-      void prepare(tf2::Vector3 velocity_mps, rclcpp::Duration go_duration, rclcpp::Duration stop_duration,
-                   double msg_rate_hz)
+      SMResult prepare(tf2::Vector3 velocity_mps, rclcpp::Duration go_duration, rclcpp::Duration stop_duration,
+                       double msg_rate_hz)
       {
         auto velocity_back = velocity_mps * -1;
         auto velocity_stop = tf2::Vector3{};
@@ -37,12 +37,12 @@ namespace provoke
         sm_prepare(*gos_[2], velocity_back, go_duration, msg_rate_hz);
         sm_prepare(*gos_[3], velocity_stop, stop_duration, msg_rate_hz);
 
-        set_running();
+        return set_running();
       }
 
-      void set_running();
+      SMResult set_running();
 
-      void set_complete();
+      SMResult set_complete();
     };
 
     // ==============================================================================
@@ -60,28 +60,29 @@ namespace provoke
         StateInterface(impl, "running"), impl_(impl), hub_(hub)
       {}
 
-      void prepare()
+      SMResult prepare()
       {
         go_idx_ = 0;
+        return SMResult::success();
       }
 
-      bool on_timer(rclcpp::Time now) override
+      SMResult on_timer(rclcpp::Time now) override
       {
         // call on_timer for this go.
         auto cont = hub_.gos_[go_idx_]->state().on_timer(now);
-        if (cont) {
-          return true;
+        if (cont.succeeded()) {
+          return cont;
         }
 
         // This go state machine has completed. Move to the next one.
         go_idx_ += 1;
         if (go_idx_ < hub_.gos_.size()) {
-          return true;
+          return cont;
         }
 
         // All the go state machines have completed so move to completed state
         hub_.set_complete();
-        return false;
+        return SMResult::conclusion();
       }
     };
 
@@ -99,16 +100,16 @@ namespace provoke
         StateInterface(impl, "complete"), impl_(impl), hub_(hub)
       {}
 
-      bool on_timer(rclcpp::Time now) override
+      SMResult on_timer(rclcpp::Time now) override
       {
         (void) now;
-        return false;
+        return SMResult::conclusion();
       }
 
-      bool on_tello_response(tello_msgs::msg::TelloResponse *msg) override
+      SMResult on_tello_response(tello_msgs::msg::TelloResponse *msg) override
       {
         (void) msg;
-        return false;
+        return SMResult::conclusion();
       }
     };
 

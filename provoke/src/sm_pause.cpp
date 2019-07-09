@@ -5,31 +5,37 @@ namespace provoke
 {
   namespace sm_pause
   {
-    void Hub::prepare(rclcpp::Duration duration)
+    SMResult Hub::prepare(rclcpp::Duration duration)
     {
       RCLCPP_INFO(machine_.impl_.node_.get_logger(),
                   "Prepare sm:%s (duration:%7.3f sec.)",
                   machine_.name_.c_str(), duration.seconds());
-      set_ready(duration);
+      return set_ready(duration);
     }
 
-    void Hub::set_ready(rclcpp::Duration duration)
+    SMResult Hub::set_ready(rclcpp::Duration duration)
     {
-      machine_.ready_.prepare(duration);
-      machine_.set_state(machine_.ready_);
+      auto res = machine_.ready_.prepare(duration);
+      if (!res.succeeded()) {
+        return res;
+      }
+      return machine_.set_state(machine_.ready_);
     }
 
-    void Hub::set_waiting(rclcpp::Time end_time)
+    SMResult Hub::set_waiting(rclcpp::Time end_time)
     {
-      machine_.waiting_.prepare(end_time);
-      machine_.set_state(machine_.waiting_);
+      auto res = machine_.waiting_.prepare(end_time);
+      if (!res.succeeded()) {
+        return res;
+      }
+      return machine_.set_state(machine_.waiting_);
     }
 
-    std::string Machine::_validate_args(const StateMachineArgs &args, rclcpp::Duration &duration)
+    SMResult Machine::_validate_args(const StateMachineArgs &args, rclcpp::Duration &duration)
     {
       std::ostringstream oss{};
       if (args.size() != 1) {
-        oss << "sm_pause takes 1 argument.";
+        oss << name_ << " takes a single argument.";
       }
 
       auto pair = args.begin();
@@ -37,21 +43,23 @@ namespace provoke
       auto secs = std::strtod(pair->second.c_str(), &next);
       duration = rclcpp::Duration(std::chrono::milliseconds(static_cast<int>(secs * 1000)));
 
-      return oss.str();
+      return oss.str().empty() ? SMResult::success() : SMResult{SMResultCodes::failure, oss.str()};
     }
 
-    std::string Machine::validate_args(const StateMachineArgs &args)
+    SMResult Machine::validate_args(const StateMachineArgs &args)
     {
       rclcpp::Duration duration{0, 0};
       return _validate_args(args, duration);
     }
 
-    void Machine::prepare_from_args(const StateMachineArgs &args)
+    SMResult Machine::prepare_from_args(const StateMachineArgs &args)
     {
       rclcpp::Duration duration{0, 0};
-      if (_validate_args(args, duration).empty()) {
-        hub_.prepare(duration);
+      auto res = _validate_args(args, duration);
+      if (!res.succeeded()) {
+        return res;
       }
+      return hub_.prepare(duration);
     }
   }
 
@@ -60,9 +68,9 @@ namespace provoke
     return std::make_unique<sm_pause::Machine>(impl);
   }
 
-  void sm_prepare(sm_pause::Machine &machine, rclcpp::Duration duration)
+  SMResult sm_prepare(sm_pause::Machine &machine, rclcpp::Duration duration)
   {
-    machine.hub_.prepare(duration);
+    return machine.hub_.prepare(duration);
   }
 
 }

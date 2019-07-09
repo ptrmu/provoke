@@ -5,22 +5,28 @@ namespace provoke
 {
   namespace sm_go
   {
-    void Hub::set_ready()
+    SMResult Hub::set_ready()
     {
-      machine_.set_state(machine_.ready_);
+      return machine_.set_state(machine_.ready_);
     }
 
-    void Hub::prepare(tf2::Vector3 velocity_mps, rclcpp::Duration duration, double msg_rate_hz)
+    SMResult Hub::prepare(tf2::Vector3 velocity_mps, rclcpp::Duration duration, double msg_rate_hz)
     {
       velocity_mps_ = velocity_mps;
-      machine_.ready_.prepare(duration, msg_rate_hz);
-      set_ready();
+      auto res = machine_.ready_.prepare(duration, msg_rate_hz);
+      if (!res.succeeded()) {
+        return res;
+      }
+      return set_ready();
     }
 
-    void Hub::set_waiting(rclcpp::Time end_time, rclcpp::Time next_msg_time, rclcpp::Duration inter_msg_duration)
+    SMResult Hub::set_waiting(rclcpp::Time end_time, rclcpp::Time next_msg_time, rclcpp::Duration inter_msg_duration)
     {
-      machine_.waiting_.prepare(end_time, next_msg_time, inter_msg_duration);
-      machine_.set_state(machine_.waiting_);
+      auto res = machine_.waiting_.prepare(end_time, next_msg_time, inter_msg_duration);
+      if (!res.succeeded()) {
+        return res;
+      }
+      return machine_.set_state(machine_.waiting_);
     }
 
     void Hub::send_go()
@@ -35,10 +41,10 @@ namespace provoke
     return std::make_unique<sm_go::Machine>(impl);
   }
 
-  void sm_prepare(sm_go::Machine &machine, tf2::Vector3 velocity_mps,
-                  rclcpp::Duration duration, double msg_rate_hz)
+  SMResult sm_prepare(sm_go::Machine &machine, tf2::Vector3 velocity_mps,
+                      rclcpp::Duration duration, double msg_rate_hz)
   {
-    machine.hub_.prepare(velocity_mps, duration, msg_rate_hz);
+    return machine.hub_.prepare(velocity_mps, duration, msg_rate_hz);
   }
 
 }

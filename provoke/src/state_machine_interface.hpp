@@ -13,6 +13,54 @@ namespace provoke
 {
   class ProvokeNodeImpl;
 
+  enum class SMResultCodes
+  {
+    success = 0,
+    conclusion,
+    timeout,
+    failure,
+  };
+
+  class SMResult
+  {
+    SMResultCodes code_;
+    std::string msg_;
+
+  public:
+    SMResult() :
+      code_{SMResultCodes::success}, msg_{}
+    {
+    }
+
+    SMResult(SMResultCodes code, const std::string &msg) :
+      code_{code}, msg_{msg}
+    {}
+
+    auto code()
+    { return code_; }
+
+    auto &msg()
+    { return msg_; }
+
+    bool succeeded()
+    { return code_ == SMResultCodes::success; }
+
+    static SMResult success()
+    {
+      return SMResult{};
+    }
+
+    static SMResult conclusion()
+    {
+      return SMResult{SMResultCodes::conclusion, ""};
+    }
+
+    static SMResult failure()
+    {
+      return SMResult{SMResultCodes::failure, "Unspecified failure"};
+    }
+  };
+
   class StateInterface
   {
   public:
@@ -25,9 +73,9 @@ namespace provoke
 
     virtual ~StateInterface() = default;
 
-    virtual bool on_timer(rclcpp::Time now);
+    virtual SMResult on_timer(rclcpp::Time now);
 
-    virtual bool on_tello_response(tello_msgs::msg::TelloResponse *msg);
+    virtual SMResult on_tello_response(tello_msgs::msg::TelloResponse *msg);
   };
 
 
@@ -55,14 +103,15 @@ namespace provoke
       return *state_;
     }
 
-    void set_state(StateInterface &state)
+    SMResult set_state(StateInterface &state)
     {
       state_ = &state;
+      return SMResult::success();
     }
 
-    virtual std::string validate_args(const StateMachineArgs &args);
+    virtual SMResult validate_args(const StateMachineArgs &args);
 
-    virtual void prepare_from_args(const StateMachineArgs &args);
+    virtual SMResult prepare_from_args(const StateMachineArgs &args);
   };
 
   namespace sm_manager
@@ -72,7 +121,7 @@ namespace provoke
 
   std::unique_ptr<sm_manager::Machine> sm_manager_factory(ProvokeNodeImpl &impl);
 
-  void sm_prepare(sm_manager::Machine &machine);
+  SMResult sm_prepare(sm_manager::Machine &machine);
 
   namespace sm_send_action
   {
@@ -81,7 +130,7 @@ namespace provoke
 
   std::unique_ptr<sm_send_action::Machine> sm_send_action_factory(ProvokeNodeImpl &impl, const std::string &action);
 
-  void sm_prepare(sm_send_action::Machine &machine);
+  SMResult sm_prepare(sm_send_action::Machine &machine);
 
   namespace sm_pause
   {
@@ -90,7 +139,7 @@ namespace provoke
 
   std::unique_ptr<sm_pause::Machine> sm_pause_factory(ProvokeNodeImpl &impl);
 
-  void sm_prepare(sm_pause::Machine &machine, rclcpp::Duration duration);
+  SMResult sm_prepare(sm_pause::Machine &machine, rclcpp::Duration duration);
 
   namespace sm_go
   {
@@ -99,8 +148,8 @@ namespace provoke
 
   std::unique_ptr<sm_go::Machine> sm_go_factory(ProvokeNodeImpl &impl);
 
-  void sm_prepare(sm_go::Machine &machine, tf2::Vector3 velocity_mps,
-                  rclcpp::Duration duration, double msg_rate_hz);
+  SMResult sm_prepare(sm_go::Machine &machine, tf2::Vector3 velocity_mps,
+                      rclcpp::Duration duration, double msg_rate_hz);
 
   namespace sm_out_back
   {
@@ -109,7 +158,7 @@ namespace provoke
 
   std::unique_ptr<sm_out_back::Machine> sm_out_back_factory(ProvokeNodeImpl &impl);
 
-  void sm_prepare(sm_out_back::Machine &machine, tf2::Vector3 velocity_mps,
-                  rclcpp::Duration go_duration, rclcpp::Duration stop_duration, double msg_rate_hz);
+  SMResult sm_prepare(sm_out_back::Machine &machine, tf2::Vector3 velocity_mps,
+                      rclcpp::Duration go_duration, rclcpp::Duration stop_duration, double msg_rate_hz);
 }
 #endif //STATE_MACHINE_INTERFACE_HPP

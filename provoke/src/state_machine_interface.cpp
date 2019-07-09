@@ -6,28 +6,29 @@
 
 namespace provoke
 {
-  bool StateInterface::on_timer(rclcpp::Time now)
+  SMResult StateInterface::on_timer(rclcpp::Time now)
   {
     (void) now;
     RCLCPP_ERROR(impl_.node_.get_logger(), "Action 'on_timer()' not overridden for state %s", name_.c_str());
-    return false;
+    return SMResult{SMResultCodes::failure, "on_timer un-implemented"};
   }
 
-  bool StateInterface::on_tello_response(tello_msgs::msg::TelloResponse *msg)
+  SMResult StateInterface::on_tello_response(tello_msgs::msg::TelloResponse *msg)
   {
     (void) msg;
     RCLCPP_ERROR(impl_.node_.get_logger(), "Action 'on_tello_response()' not overridden for state %s", name_.c_str());
-    return false;
+    return SMResult{SMResultCodes::failure, "on_tello_response un-implemented"};
   }
 
-  std::string StateMachineInterface::validate_args(const StateMachineArgs &args)
+  SMResult StateMachineInterface::validate_args(const StateMachineArgs &args)
   {
     (void) args;
-    return std::string{};
+    return SMResult{SMResultCodes::failure, "validate_args un-implemented"};
   }
 
-  void StateMachineInterface::prepare_from_args(const StateMachineArgs &args)
+  SMResult StateMachineInterface::prepare_from_args(const StateMachineArgs &args)
   {
     (void) args;
+    return SMResult{SMResultCodes::failure, "prepare_from_args un-implemented"};
   }
 }

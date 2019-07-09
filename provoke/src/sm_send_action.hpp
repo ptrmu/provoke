@@ -27,11 +27,11 @@ namespace provoke
         machine_{machine}, action_{action}
       {}
 
-      void prepare();
+      SMResult prepare();
 
-      void set_ready();
+      SMResult set_ready();
 
-      void set_waiting();
+      SMResult set_waiting();
     };
 
     // ==============================================================================
@@ -48,21 +48,22 @@ namespace provoke
         StateInterface(impl, "ready"), impl_(impl), hub_(hub)
       {}
 
-      void prepare()
+      SMResult prepare()
       {
+        return SMResult::success();
       }
 
-      bool on_timer(rclcpp::Time now) override
+      SMResult on_timer(rclcpp::Time now) override
       {
         (void) now;
         hub_.set_waiting();
-        return false;
+        return SMResult::conclusion();
       }
 
-      bool on_tello_response(tello_msgs::msg::TelloResponse *msg) override
+      SMResult on_tello_response(tello_msgs::msg::TelloResponse *msg) override
       {
         (void) msg;
-        return false;
+        return SMResult::conclusion();
       }
     };
 
@@ -80,17 +81,17 @@ namespace provoke
         StateInterface(impl, "waiting"), impl_(impl), hub_(hub)
       {}
 
-      bool on_timer(rclcpp::Time now) override
+      SMResult on_timer(rclcpp::Time now) override
       {
         (void) now;
         hub_.set_ready();
-        return false;
+        return SMResult::conclusion();
       }
 
-      bool on_tello_response(tello_msgs::msg::TelloResponse *msg) override
+      SMResult on_tello_response(tello_msgs::msg::TelloResponse *msg) override
       {
         (void) msg;
-        return false;
+        return SMResult::conclusion();
       }
     };
 
@@ -111,9 +112,9 @@ namespace provoke
 
       ~Machine() = default;
 
-      std::string validate_args(const StateMachineArgs &args) override;
+      SMResult validate_args(const StateMachineArgs &args) override;
 
-      void prepare_from_args(const StateMachineArgs &args) override;
+      SMResult prepare_from_args(const StateMachineArgs &args) override;
     };
   }
 }
