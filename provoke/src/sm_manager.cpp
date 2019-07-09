@@ -24,7 +24,7 @@ namespace provoke
 
       bool yaml_error(const std::string &s)
       {
-        error_msg_ = "YamlParser error -";
+        error_msg_ = "YamlParser error - ";
         error_msg_.append(s);
         return false;
       }
@@ -38,27 +38,25 @@ namespace provoke
         }
 
         // handle the "xx: {a:32}" case
-        if (poke.IsMap()) {
-          if (poke.size() > 0) {
-
-            // loop over all the elements in the map and add them to the args map.
-            for (auto iter = poke.begin(); iter != poke.end(); ++iter) {
-              auto &pair = *iter;
-              if (pair.first.IsScalar() && pair.second.IsScalar()) {
-
-                sm_args.emplace(pair.first.Scalar(), pair.second.Scalar());
-                return true;
-
-              } else {
-                return yaml_error("key and value must be scalars.");
-              }
-            }
-          } else {
-            return yaml_error("need an argument in the map");
-          }
+        if (!poke.IsMap()) {
+          return yaml_error("Mal-formed arguments. Should be 'xx: 3' or xx: { a:34 }'.");
         }
 
-        return yaml_error("mal formed arguments. Should be 'xx: 3' or xx: { a:34 }'");
+        if (poke.size() == 0) {
+          return yaml_error("Need an argument in the map.");
+        }
+
+        // loop over all the elements in the map and add them to the args map.
+        for (auto iter = poke.begin(); iter != poke.end(); ++iter) {
+          auto &pair = *iter;
+          if (!pair.first.IsScalar() || !pair.second.IsScalar()) {
+            return yaml_error("Key and value must be scalars.");
+          }
+
+          sm_args.emplace(pair.first.Scalar(), pair.second.Scalar());
+        }
+
+        return true;
       }
 
       bool from_poke(const YAML::Node &poke)
@@ -191,8 +189,8 @@ namespace provoke
     Hub::Hub(Machine &machine) :
       machine_{machine}
     {
-      sm_land_ = sm_send_action_factory(machine_.impl_, "land");
-      sm_takeoff_ = sm_send_action_factory(machine_.impl_, "takeoff");
+      sm_land_ = sm_send_action_factory(machine_.impl_, "land", land_timeout_sec_);
+      sm_takeoff_ = sm_send_action_factory(machine_.impl_, "takeoff", takeoff_timeout_sec_);
       sm_go_ = sm_go_factory(machine_.impl_);
       sm_pause_ = sm_pause_factory(machine_.impl_);
       sm_out_back_ = sm_out_back_factory(machine_.impl_);
@@ -265,7 +263,7 @@ namespace provoke
                                       yaml_parser.error_msg_.c_str());
 
         } else {
-          auto res = validate_sm_args(poke_name_list, poke_args_list);
+          res = validate_sm_args(poke_name_list, poke_args_list);
           if (!res.succeeded()) {
             res = SMResult::make_result(res.code(),
                                         "validate_sm_args() failed with error: '%s'",
@@ -274,15 +272,15 @@ namespace provoke
           } else {
             poke_list_valids_[i] = true;
           }
+        }
 
-          if (res.succeeded()) {
-            RCLCPP_INFO(machine_.impl_.node_.get_logger(),
-                        "validate_parameters() of poke_list_%d succeeded", i + 1);
-          } else {
-            RCLCPP_ERROR(machine_.impl_.node_.get_logger(),
-                         "validate_parameters() of poke_list_%d failed with error: '%s'",
-                         i + 1, res.msg().c_str());
-          }
+        if (res.succeeded()) {
+          RCLCPP_INFO(machine_.impl_.node_.get_logger(),
+                      "validate_parameters() of poke_list_%d succeeded", i + 1);
+        } else {
+          RCLCPP_ERROR(machine_.impl_.node_.get_logger(),
+                       "validate_parameters() of poke_list_%d failed with error: '%s'",
+                       i + 1, res.msg().c_str());
         }
       }
     }

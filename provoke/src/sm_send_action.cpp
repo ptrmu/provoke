@@ -5,11 +5,13 @@ namespace provoke
 {
   namespace sm_send_action
   {
-    SMResult Hub::sm_prepare(rclcpp::Duration timeout)
+    SMResult Hub::sm_prepare()
     {
       RCLCPP_INFO(machine_.impl_.node_.get_logger(),
-                  "Prepare sm:%s(%s)",
-                  machine_.name_.c_str(), action_.c_str());
+                  "Prepare sm:%s(%s) timeout:%7.3f",
+                  machine_.name_.c_str(), action_.c_str(), timeout_sec_);
+
+      rclcpp::Duration timeout{std::chrono::milliseconds(static_cast<int>(timeout_sec_ * 1000))};
       return set_ready(timeout);
     }
 
@@ -31,12 +33,12 @@ namespace provoke
       return machine_.set_state(machine_.waiting_);
     }
 
-    static SMResult _validate_args(const StateMachineInterface::StateMachineArgs &args)
+    SMResult Machine::_validate_args(const StateMachineInterface::StateMachineArgs &args)
     {
       if (!args.empty()) {
-        std::ostringstream oss{};
-        oss << "send_action takes no arguments.";
-        return SMResult{SMResultCodes::failure, oss.str()};
+        return SMResult::make_result(SMResultCodes::failure,
+                                     "Machine '%s' requires no arguments. %d were passed.",
+                                     name_.c_str(), args.size());
       }
       return SMResult::success();
     }
@@ -52,13 +54,13 @@ namespace provoke
       if (!res.succeeded()) {
         return res;
       }
-      return hub_.sm_prepare(rclcpp::Duration{0, 0});
+      return hub_.sm_prepare();
     }
   }
 
   std::unique_ptr<sm_send_action::Machine>
-  sm_send_action_factory(provoke::ProvokeNodeImpl &impl, const std::string &action)
+  sm_send_action_factory(provoke::ProvokeNodeImpl &impl, const std::string &action, double &timeout_sec)
   {
-    return std::make_unique<sm_send_action::Machine>(impl, action);
+    return std::make_unique<sm_send_action::Machine>(impl, action, timeout_sec);
   }
 }

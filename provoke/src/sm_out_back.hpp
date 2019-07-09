@@ -26,19 +26,8 @@ namespace provoke
 
       explicit Hub(Machine &machine);
 
-      SMResult sm_prepare(tf2::Vector3 velocity_mps, rclcpp::Duration go_duration, rclcpp::Duration stop_duration,
-                          double msg_rate_hz)
-      {
-        auto velocity_back = velocity_mps * -1;
-        auto velocity_stop = tf2::Vector3{};
-
-        gos_[0]->hub_.sm_prepare(velocity_mps, go_duration, msg_rate_hz);
-        gos_[1]->hub_.sm_prepare(velocity_stop, stop_duration, msg_rate_hz);
-        gos_[2]->hub_.sm_prepare(velocity_back, go_duration, msg_rate_hz);
-        gos_[3]->hub_.sm_prepare(velocity_stop, stop_duration, msg_rate_hz);
-
-        return set_running();
-      }
+      SMResult sm_prepare(tf2::Vector3 velocity_mps, rclcpp::Duration go_duration,
+                          rclcpp::Duration stop_duration, double msg_rate_hz);
 
       SMResult set_running();
 
@@ -69,14 +58,14 @@ namespace provoke
       {
         // call on_timer for this go.
         auto cont = hub_.gos_[go_idx_]->state().on_timer(now);
-        if (cont.succeeded()) {
+        if (cont.code() != SMResultCodes::conclusion) {
           return cont;
         }
 
         // This go state machine has completed. Move to the next one.
         go_idx_ += 1;
         if (go_idx_ < hub_.gos_.size()) {
-          return cont;
+          return SMResult::success();
         }
 
         // All the go state machines have completed so move to completed state
@@ -95,7 +84,7 @@ namespace provoke
 
     public:
       Complete(StateMachineInterface &machine, provoke::ProvokeNodeImpl &impl, Hub &hub) :
-        StateInterface{"complete", machine,  impl}, hub_{hub}
+        StateInterface{"complete", machine, impl}, hub_{hub}
       {}
 
       SMResult on_timer(rclcpp::Time now) override
@@ -117,8 +106,13 @@ namespace provoke
 
     class Machine : public StateMachineInterface
     {
-    public:
       Hub hub_;
+
+      SMResult _validate_args(const StateMachineArgs &args, tf2::Vector3 &velocity_mps,
+                              rclcpp::Duration &go_duration, rclcpp::Duration &stop_duration,
+                              double &msg_rate_hz);
+
+    public:
       Running running_;
       Complete complete_;
 
@@ -128,6 +122,10 @@ namespace provoke
       {}
 
       ~Machine() override = default;
+
+      SMResult validate_args(const StateMachineArgs &args) override;
+
+      SMResult prepare_from_args(const StateMachineArgs &args) override;
     };
   }
 }

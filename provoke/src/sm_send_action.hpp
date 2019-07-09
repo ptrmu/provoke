@@ -22,12 +22,13 @@ namespace provoke
 
     public:
       const std::string action_;
+      double &timeout_sec_;
 
-      Hub(Machine &machine, std::string action) :
-        machine_{machine}, action_{std::move(action)}
+      Hub(Machine &machine, std::string action, double &timeout_sec) :
+        machine_{machine}, action_{std::move(action)}, timeout_sec_{timeout_sec}
       {}
 
-      SMResult sm_prepare(rclcpp::Duration timeout);
+      SMResult sm_prepare();
 
       SMResult set_ready(rclcpp::Duration timeout);
 
@@ -45,7 +46,7 @@ namespace provoke
 
     public:
       Ready(StateMachineInterface &machine, provoke::ProvokeNodeImpl &impl, Hub &hub) :
-        StateInterface{"ready", machine,  impl}, hub_{hub}
+        StateInterface{"ready", machine, impl}, hub_{hub}
       {}
 
       SMResult prepare(rclcpp::Duration timeout)
@@ -73,7 +74,7 @@ namespace provoke
 
     public:
       Waiting(StateMachineInterface &machine, provoke::ProvokeNodeImpl &impl, Hub &hub) :
-        StateInterface{"waiting", machine,  impl}, hub_{hub}
+        StateInterface{"waiting", machine, impl}, hub_{hub}
       {}
 
       SMResult prepare(rclcpp::Time timeout_time)
@@ -111,13 +112,16 @@ namespace provoke
 
     class Machine : public StateMachineInterface
     {
-    public:
       Hub hub_;
+
+      SMResult _validate_args(const StateMachineInterface::StateMachineArgs &args);
+
+    public:
       Ready ready_;
       Waiting waiting_;
 
-      explicit Machine(provoke::ProvokeNodeImpl &impl, const std::string &action)
-        : StateMachineInterface{"sm_send_action", impl}, hub_{*this, action}, ready_{*this, impl, hub_},
+      explicit Machine(provoke::ProvokeNodeImpl &impl, const std::string &action, double &timeout_sec)
+        : StateMachineInterface{"sm_send_action", impl}, hub_{*this, action, timeout_sec}, ready_{*this, impl, hub_},
           waiting_{*this, impl, hub_}
       {}
 

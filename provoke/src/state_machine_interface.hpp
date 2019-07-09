@@ -126,14 +126,13 @@ namespace provoke
 
   std::unique_ptr<sm_manager::Machine> sm_manager_factory(ProvokeNodeImpl &impl);
 
-  SMResult sm_prepare(sm_manager::Machine &machine);
-
   namespace sm_send_action
   {
     class Machine;
   }
 
-  std::unique_ptr<sm_send_action::Machine> sm_send_action_factory(ProvokeNodeImpl &impl, const std::string &action);
+  std::unique_ptr<sm_send_action::Machine>
+  sm_send_action_factory(ProvokeNodeImpl &impl, const std::string &action, double &timeout_sec);
 
   namespace sm_pause
   {

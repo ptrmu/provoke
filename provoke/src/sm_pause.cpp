@@ -33,17 +33,17 @@ namespace provoke
 
     SMResult Machine::_validate_args(const StateMachineArgs &args, rclcpp::Duration &duration)
     {
-      std::ostringstream oss{};
       if (args.size() != 1) {
-        oss << name_ << " takes a single argument.";
+        return SMResult::make_result(SMResultCodes::failure,
+          "Machine '%s' requires 1 argument. %d were passed.",
+          name_.c_str(), args.size());
       }
 
       auto pair = args.begin();
-      char *next;
-      auto secs = std::strtod(pair->second.c_str(), &next);
+      auto secs = std::strtod(pair->second.c_str(), nullptr);
       duration = rclcpp::Duration(std::chrono::milliseconds(static_cast<int>(secs * 1000)));
 
-      return oss.str().empty() ? SMResult::success() : SMResult{SMResultCodes::failure, oss.str()};
+      return SMResult::success();
     }
 
     SMResult Machine::validate_args(const StateMachineArgs &args)

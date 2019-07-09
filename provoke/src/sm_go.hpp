@@ -47,7 +47,7 @@ namespace provoke
 
     public:
       Ready(StateMachineInterface &machine, provoke::ProvokeNodeImpl &impl, Hub &hub) :
-        StateInterface{"ready", machine,  impl}, hub_{hub}
+        StateInterface{"ready", machine, impl}, hub_{hub}
       {}
 
       SMResult prepare(rclcpp::Duration duration, double msg_rate_hz)
@@ -90,7 +90,7 @@ namespace provoke
 
     public:
       Waiting(StateMachineInterface &machine, provoke::ProvokeNodeImpl &impl, Hub &hub) :
-        StateInterface{"waiting", machine,  impl}, hub_{hub}
+        StateInterface{"waiting", machine, impl}, hub_{hub}
       {}
 
       SMResult prepare(rclcpp::Time end_time, rclcpp::Time next_msg_time, rclcpp::Duration inter_msg_duration)
@@ -104,7 +104,7 @@ namespace provoke
       SMResult on_timer(rclcpp::Time now) override
       {
         if (now >= end_time_) {
-          return SMResult::failure();
+          return SMResult::conclusion();
         }
 
         if (next_msg_time_.nanoseconds() != 0 && now >= next_msg_time_) {
@@ -124,8 +124,12 @@ namespace provoke
 
     class Machine : public StateMachineInterface
     {
-    public:
       Hub hub_;
+
+      SMResult _validate_args(const StateMachineArgs &args, tf2::Vector3 &velocity_mps,
+                              rclcpp::Duration &duration, double &msg_rate_hz);
+
+    public:
       Ready ready_;
       Waiting waiting_;
 
@@ -135,6 +139,10 @@ namespace provoke
       {}
 
       ~Machine() override = default;
+
+      SMResult validate_args(const StateMachineArgs &args) override;
+
+      SMResult prepare_from_args(const StateMachineArgs &args) override;
     };
   }
 }

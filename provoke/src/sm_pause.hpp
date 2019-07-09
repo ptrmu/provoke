@@ -91,10 +91,11 @@ namespace provoke
 
     class Machine : public StateMachineInterface
     {
+      Hub hub_;
+
       SMResult _validate_args(const StateMachineArgs &args, rclcpp::Duration &duration);
 
     public:
-      Hub hub_;
       Ready ready_;
       Waiting waiting_;
 
