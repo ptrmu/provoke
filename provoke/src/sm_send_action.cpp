@@ -5,25 +5,29 @@ namespace provoke
 {
   namespace sm_send_action
   {
-    SMResult Hub::sm_prepare()
+    SMResult Hub::sm_prepare(rclcpp::Duration timeout)
     {
       RCLCPP_INFO(machine_.impl_.node_.get_logger(),
                   "Prepare sm:%s(%s)",
                   machine_.name_.c_str(), action_.c_str());
-      return set_ready();
+      return set_ready(timeout);
     }
 
-    SMResult Hub::set_ready()
+    SMResult Hub::set_ready(rclcpp::Duration timeout)
     {
-      auto res = machine_.ready_.prepare();
+      auto res = machine_.ready_.prepare(timeout);
       if (!res.succeeded()) {
         return res;
       }
       return machine_.set_state(machine_.ready_);
     }
 
-    SMResult Hub::set_waiting()
+    SMResult Hub::set_waiting(rclcpp::Time timeout_time)
     {
+      auto res = machine_.waiting_.prepare(timeout_time);
+      if (!res.succeeded()) {
+        return res;
+      }
       return machine_.set_state(machine_.waiting_);
     }
 
@@ -48,7 +52,7 @@ namespace provoke
       if (!res.succeeded()) {
         return res;
       }
-      return hub_.sm_prepare();
+      return hub_.sm_prepare(rclcpp::Duration{0, 0});
     }
   }
 
