@@ -39,7 +39,7 @@ namespace provoke
       code_{code}, msg_{msg}
     {}
 
-    static SMResult make_result(SMResultCodes code, const std::string fmt_str, ...);
+    static SMResult make_result(SMResultCodes code, std::string fmt_str, ...);
 
     auto code()
     { return code_; }
@@ -69,35 +69,35 @@ namespace provoke
   class StateInterface
   {
   public:
+    StateMachineInterface &machine_;
     ProvokeNodeImpl &impl_;
     std::string name_;
 
-    StateInterface(ProvokeNodeImpl &impl, std::string name) :
-      impl_(impl), name_(name)
-    {}
+    StateInterface(std::string name, StateMachineInterface &machine, ProvokeNodeImpl &impl);
 
     virtual ~StateInterface() = default;
 
     virtual SMResult on_timer(rclcpp::Time now);
 
     virtual SMResult on_tello_response(tello_msgs::msg::TelloResponse *msg);
+
+    bool is_active_state();
   };
 
 
   class StateMachineInterface
   {
-    StateInterface *state_;
+    StateInterface *state_{};
 
   public:
     using StateMachineArgs = std::map<std::string, std::string>;
 
-    ProvokeNodeImpl &impl_;
     std::string name_;
+    ProvokeNodeImpl &impl_;
 
-    StateMachineInterface(ProvokeNodeImpl &impl, std::string name) :
-      impl_(impl), name_(name)
-    {
-    }
+    StateMachineInterface(std::string name, ProvokeNodeImpl &impl) :
+      name_{std::move(name)}, impl_{impl}
+    {}
 
     StateMachineInterface() = delete;
 

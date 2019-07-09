@@ -9,7 +9,7 @@
 
 namespace provoke
 {
-  SMResult SMResult::make_result(SMResultCodes code, const std::string fmt_str, ...)
+  SMResult SMResult::make_result(SMResultCodes code, std::string fmt_str, ...)
   {
     constexpr size_t string_reserve = 32;
     size_t str_len = std::max(fmt_str.size(), string_reserve);
@@ -44,6 +44,10 @@ namespace provoke
     return SMResult{code, str};
   }
 
+  StateInterface::StateInterface(std::string name, StateMachineInterface &machine, ProvokeNodeImpl &impl) :
+    machine_{machine}, impl_(impl), name_(std::string{machine_.name_}.append(":").append(name))
+  {}
+
   SMResult StateInterface::on_timer(rclcpp::Time now)
   {
     (void) now;
@@ -58,6 +62,11 @@ namespace provoke
     return SMResult::make_result(SMResultCodes::logic_error,
                                  "State:%s has not implemented 'on_tello_response()'",
                                  name_.c_str());
+  }
+
+  bool StateInterface::is_active_state()
+  {
+    return this == &machine_.state();
   }
 
   SMResult StateMachineInterface::validate_args(const StateMachineArgs &args)

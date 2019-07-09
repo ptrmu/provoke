@@ -62,7 +62,7 @@ namespace provoke
       };
       std::array<bool, std::tuple_size<decltype(poke_lists_)>::value> poke_list_valids_;
 
-      Hub(Machine &machine);
+      explicit Hub(Machine &machine);
 
       ~Hub();
 
@@ -83,13 +83,12 @@ namespace provoke
     // and never return false.
     class Running : public provoke::StateInterface
     {
-      provoke::ProvokeNodeImpl &impl_;
       Hub &hub_;
       std::vector<std::string> poke_name_list_{};
       std::vector<StateMachineInterface::StateMachineArgs> poke_args_list_{};
 
-      int current_poke_idx_;
-      StateMachineInterface *current_sm_poke_;
+      int current_poke_idx_{};
+      StateMachineInterface *current_sm_poke_{};
 
       SMResult is_done(SMResult res)
       {
@@ -102,8 +101,8 @@ namespace provoke
       }
 
     public:
-      Running(provoke::ProvokeNodeImpl &impl, Hub &hub) :
-        StateInterface(impl, "running"), impl_(impl), hub_(hub)
+      Running(StateMachineInterface &machine, provoke::ProvokeNodeImpl &impl, Hub &hub) :
+        StateInterface{"running", machine,  impl}, hub_{hub}
       {}
 
       SMResult prepare_sm_poke(int idx);
@@ -129,12 +128,11 @@ namespace provoke
     // and never return false.
     class Complete : public provoke::StateInterface
     {
-      provoke::ProvokeNodeImpl &impl_;
       Hub &hub_;
 
     public:
-      Complete(provoke::ProvokeNodeImpl &impl, Hub &hub) :
-        StateInterface(impl, "complete"), impl_(impl), hub_(hub)
+      Complete(StateMachineInterface &machine, provoke::ProvokeNodeImpl &impl, Hub &hub) :
+        StateInterface{"complete", machine,  impl}, hub_{hub}
       {}
 
       SMResult prepare()
@@ -188,11 +186,12 @@ namespace provoke
       Running running_;
       Complete complete_;
 
-      Machine(provoke::ProvokeNodeImpl &impl)
-        : StateMachineInterface{impl, "sm_manager"}, hub_{*this}, running_{impl, hub_}, complete_{impl, hub_}
+      explicit Machine(provoke::ProvokeNodeImpl &impl)
+        : StateMachineInterface{"sm_manager", impl}, hub_{*this}, running_{*this, impl, hub_},
+          complete_{*this, impl, hub_}
       {}
 
-      ~Machine() = default;
+      ~Machine() override = default;
     };
   }
 }

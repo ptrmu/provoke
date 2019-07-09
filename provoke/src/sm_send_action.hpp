@@ -23,8 +23,8 @@ namespace provoke
     public:
       const std::string action_;
 
-      Hub(Machine &machine, const std::string &action) :
-        machine_{machine}, action_{action}
+      Hub(Machine &machine, std::string action) :
+        machine_{machine}, action_{std::move(action)}
       {}
 
       SMResult sm_prepare(rclcpp::Duration timeout);
@@ -40,13 +40,12 @@ namespace provoke
 
     class Ready : public provoke::StateInterface
     {
-      provoke::ProvokeNodeImpl &impl_;
       Hub &hub_;
       rclcpp::Duration timeout_{0, 0};
 
     public:
-      Ready(provoke::ProvokeNodeImpl &impl, Hub &hub) :
-        StateInterface(impl, "ready"), impl_(impl), hub_(hub)
+      Ready(StateMachineInterface &machine, provoke::ProvokeNodeImpl &impl, Hub &hub) :
+        StateInterface{"ready", machine,  impl}, hub_{hub}
       {}
 
       SMResult prepare(rclcpp::Duration timeout)
@@ -69,13 +68,12 @@ namespace provoke
 
     class Waiting : public provoke::StateInterface
     {
-      provoke::ProvokeNodeImpl &impl_;
       Hub &hub_;
       rclcpp::Time timeout_time_{};
 
     public:
-      Waiting(provoke::ProvokeNodeImpl &impl, Hub &hub) :
-        StateInterface(impl, "waiting"), impl_(impl), hub_(hub)
+      Waiting(StateMachineInterface &machine, provoke::ProvokeNodeImpl &impl, Hub &hub) :
+        StateInterface{"waiting", machine,  impl}, hub_{hub}
       {}
 
       SMResult prepare(rclcpp::Time timeout_time)
@@ -118,12 +116,12 @@ namespace provoke
       Ready ready_;
       Waiting waiting_;
 
-      Machine(provoke::ProvokeNodeImpl &impl, const std::string &action)
-        : StateMachineInterface{impl, "sm_send_action"}, hub_{*this, action}, ready_{impl, hub_},
-          waiting_{impl, hub_}
+      explicit Machine(provoke::ProvokeNodeImpl &impl, const std::string &action)
+        : StateMachineInterface{"sm_send_action", impl}, hub_{*this, action}, ready_{*this, impl, hub_},
+          waiting_{*this, impl, hub_}
       {}
 
-      ~Machine() = default;
+      ~Machine() override = default;
 
       SMResult validate_args(const StateMachineArgs &args) override;
 

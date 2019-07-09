@@ -24,7 +24,7 @@ namespace provoke
     public:
       std::array<std::unique_ptr<sm_go::Machine>, 4> gos_;
 
-      Hub(Machine &machine);
+      explicit Hub(Machine &machine);
 
       SMResult sm_prepare(tf2::Vector3 velocity_mps, rclcpp::Duration go_duration, rclcpp::Duration stop_duration,
                           double msg_rate_hz)
@@ -51,13 +51,12 @@ namespace provoke
 
     class Running : public provoke::StateInterface
     {
-      provoke::ProvokeNodeImpl &impl_;
       Hub &hub_;
-      size_t go_idx_;
+      size_t go_idx_{};
 
     public:
-      Running(provoke::ProvokeNodeImpl &impl, Hub &hub) :
-        StateInterface(impl, "running"), impl_(impl), hub_(hub)
+      Running(StateMachineInterface &machine, provoke::ProvokeNodeImpl &impl, Hub &hub) :
+        StateInterface{"running", machine, impl}, hub_{hub}
       {}
 
       SMResult prepare()
@@ -92,12 +91,11 @@ namespace provoke
 
     class Complete : public provoke::StateInterface
     {
-      provoke::ProvokeNodeImpl &impl_;
       Hub &hub_;
 
     public:
-      Complete(provoke::ProvokeNodeImpl &impl, Hub &hub) :
-        StateInterface(impl, "complete"), impl_(impl), hub_(hub)
+      Complete(StateMachineInterface &machine, provoke::ProvokeNodeImpl &impl, Hub &hub) :
+        StateInterface{"complete", machine,  impl}, hub_{hub}
       {}
 
       SMResult on_timer(rclcpp::Time now) override
@@ -124,11 +122,12 @@ namespace provoke
       Running running_;
       Complete complete_;
 
-      Machine(provoke::ProvokeNodeImpl &impl)
-        : StateMachineInterface{impl, "sm_out_back"}, hub_{*this}, running_{impl, hub_}, complete_{impl, hub_}
+      explicit Machine(provoke::ProvokeNodeImpl &impl)
+        : StateMachineInterface{"sm_out_back", impl}, hub_{*this}, running_{*this, impl, hub_},
+          complete_{*this, impl, hub_}
       {}
 
-      ~Machine() = default;
+      ~Machine() override = default;
     };
   }
 }

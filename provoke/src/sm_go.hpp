@@ -22,7 +22,7 @@ namespace provoke
       tf2::Vector3 velocity_mps_;
 
     public:
-      Hub(Machine &machine) :
+      explicit Hub(Machine &machine) :
         machine_{machine}
       {}
 
@@ -41,14 +41,13 @@ namespace provoke
 
     class Ready : public provoke::StateInterface
     {
-      provoke::ProvokeNodeImpl &impl_;
       Hub &hub_;
       rclcpp::Duration duration_{0, 0};
       rclcpp::Duration inter_msg_duration_{0, 0};
 
     public:
-      Ready(provoke::ProvokeNodeImpl &impl, Hub &hub) :
-        StateInterface(impl, "ready"), impl_(impl), hub_(hub)
+      Ready(StateMachineInterface &machine, provoke::ProvokeNodeImpl &impl, Hub &hub) :
+        StateInterface{"ready", machine,  impl}, hub_{hub}
       {}
 
       SMResult prepare(rclcpp::Duration duration, double msg_rate_hz)
@@ -84,15 +83,14 @@ namespace provoke
 
     class Waiting : public provoke::StateInterface
     {
-      provoke::ProvokeNodeImpl &impl_;
       Hub &hub_;
       rclcpp::Time end_time_;
       rclcpp::Time next_msg_time_;
       rclcpp::Duration inter_msg_duration_{0, 0};
 
     public:
-      Waiting(provoke::ProvokeNodeImpl &impl, Hub &hub) :
-        StateInterface(impl, "waiting"), impl_(impl), hub_(hub)
+      Waiting(StateMachineInterface &machine, provoke::ProvokeNodeImpl &impl, Hub &hub) :
+        StateInterface{"waiting", machine,  impl}, hub_{hub}
       {}
 
       SMResult prepare(rclcpp::Time end_time, rclcpp::Time next_msg_time, rclcpp::Duration inter_msg_duration)
@@ -131,12 +129,12 @@ namespace provoke
       Ready ready_;
       Waiting waiting_;
 
-      Machine(provoke::ProvokeNodeImpl &impl)
-        : StateMachineInterface{impl, "sm_go"}, hub_{*this}, ready_{impl, hub_},
-          waiting_{impl, hub_}
+      explicit Machine(provoke::ProvokeNodeImpl &impl)
+        : StateMachineInterface{"sm_go", impl}, hub_{*this}, ready_{*this, impl, hub_},
+          waiting_{*this, impl, hub_}
       {}
 
-      ~Machine() = default;
+      ~Machine() override = default;
     };
   }
 }
