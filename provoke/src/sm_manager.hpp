@@ -45,8 +45,7 @@ namespace provoke
       std::map<std::string, StateMachineInterface *> sm_map_{};
 
       SMResult validate_sm_args(std::vector<std::string> &poke_name_list,
-                                std::vector<StateMachineInterface::StateMachineArgs> &poke_args_list,
-                                int poke_list_idx);
+                                std::vector<StateMachineInterface::StateMachineArgs> &poke_args_list);
 
       void validate_parameters();
 

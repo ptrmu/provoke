@@ -1,68 +1,78 @@
 
 #include "state_machine_interface.hpp"
 
+#include <stdio.h>
+#include <stdarg.h> // for va_list, va_start
+
 #include "rclcpp/rclcpp.hpp"
 #include "provoke_node_impl.hpp"
 
 namespace provoke
 {
+  SMResult SMResult::make_result(SMResultCodes code, const std::string fmt_str, ...)
+  {
+    constexpr size_t string_reserve = 32;
+    size_t str_len = std::max(fmt_str.size(), string_reserve);
+    std::string str;
+
+
+    do {
+      va_list ap;
+      va_start(ap, fmt_str); // NOTE: vsnprintf modifies ap so it has to be initialized in the loop
+
+      str.resize(str_len);
+
+      auto final_n = vsnprintf(const_cast<char *>(str.data()), str_len, fmt_str.c_str(), ap);
+
+      // For an encoding error just return what is in the buffer.
+      if (final_n < 0) {
+        break;
+      }
+
+      // If the buffer sufficient, resize it and finish.
+      if (final_n < static_cast<int>(str_len)) {
+        str.resize(final_n + 1); // don't truncate the trailing null!
+        break;
+      }
+
+      // The buffer was not large enough. So resize it.
+      str_len = final_n + 1;
+
+      va_end(ap);
+    } while (true);
+
+    return SMResult{code, str};
+  }
+
   SMResult StateInterface::on_timer(rclcpp::Time now)
   {
     (void) now;
-    RCLCPP_ERROR(impl_.node_.get_logger(), "Action 'on_timer()' not overridden for state %s", name_.c_str());
-    return SMResult{SMResultCodes::failure, "on_timer un-implemented"};
+    return SMResult::make_result(SMResultCodes::logic_error,
+                                 "State:%s has not implemented 'on_timer()'",
+                                 name_.c_str());
   }
 
   SMResult StateInterface::on_tello_response(tello_msgs::msg::TelloResponse *msg)
   {
     (void) msg;
-    RCLCPP_ERROR(impl_.node_.get_logger(), "Action 'on_tello_response()' not overridden for state %s", name_.c_str());
-    return SMResult{SMResultCodes::failure, "on_tello_response un-implemented"};
+    return SMResult::make_result(SMResultCodes::logic_error,
+                                 "State:%s has not implemented 'on_tello_response()'",
+                                 name_.c_str());
   }
 
   SMResult StateMachineInterface::validate_args(const StateMachineArgs &args)
   {
     (void) args;
-    return SMResult{SMResultCodes::failure, "validate_args un-implemented"};
+    return SMResult::make_result(SMResultCodes::logic_error,
+                                 "Machine:%s has not implemented 'validate_args()'",
+                                 name_.c_str());
   }
 
   SMResult StateMachineInterface::prepare_from_args(const StateMachineArgs &args)
   {
     (void) args;
-    return SMResult{SMResultCodes::failure, "prepare_from_args un-implemented"};
+    return SMResult::make_result(SMResultCodes::logic_error,
+                                 "Machine:%s has not implemented 'prepare_from_args()'",
+                                 name_.c_str());
   }
-
-  /*
-#include <string>
-#include <cstdarg>
-#include <cstdlib>
-#include <memory>
-#include <algorithm>
-
-inline std::string string_format2(size_t string_reserve, const std::string fmt_str, ...)
-{
-    size_t str_len = (std::max)(fmt_str.size(), string_reserve);
-    std::string str;
-
-    va_list ap;
-    va_start(ap, fmt_str);
-
-    while (true) {
-        str.resize(str_len);
-
-        const int final_n = vsnprintf(const_cast<char *>(str.data()), str_len, fmt_str.c_str(), ap);
-
-        if (final_n < 0 || final_n >= int(str_len))
-            str_len += (std::abs)(final_n - int(str_len) + 1);
-        else {
-            str.resize(final_n); // do not forget to shrink the size!
-            break;
-        }
-    }
-
-    va_end(ap);
-
-    return str;
-}
-*/
 }

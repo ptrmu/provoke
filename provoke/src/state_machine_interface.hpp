@@ -13,11 +13,14 @@ namespace provoke
 {
   class ProvokeNodeImpl;
 
+  class StateMachineInterface;
+
   enum class SMResultCodes
   {
     success = 0,
     conclusion,
     timeout,
+    logic_error,
     failure,
   };
 
@@ -35,6 +38,8 @@ namespace provoke
     SMResult(SMResultCodes code, const std::string &msg) :
       code_{code}, msg_{msg}
     {}
+
+    static SMResult make_result(SMResultCodes code, const std::string fmt_str, ...);
 
     auto code()
     { return code_; }
@@ -57,7 +62,7 @@ namespace provoke
 
     static SMResult failure()
     {
-      return SMResult{SMResultCodes::failure, "Unspecified failure"};
+      return SMResult{SMResultCodes::failure, ""};
     }
   };
 

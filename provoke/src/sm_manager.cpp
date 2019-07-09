@@ -221,8 +221,7 @@ namespace provoke
     }
 
     SMResult Hub::validate_sm_args(std::vector<std::string> &poke_name_list,
-                                   std::vector<StateMachineInterface::StateMachineArgs> &poke_args_list,
-                                   int poke_list_idx)
+                                   std::vector<StateMachineInterface::StateMachineArgs> &poke_args_list)
     {
       for (size_t i = 0; i < poke_name_list.size(); i += 1) {
 
@@ -230,18 +229,16 @@ namespace provoke
         auto sm_poke = find_state_machine(poke_name);
 
         if (sm_poke == nullptr) {
-          RCLCPP_ERROR(machine_.impl_.node_.get_logger(),
-                       "YAML parse of poke_list_%d failed: poke with name %s does not exist (poke #%d).",
-                       poke_list_idx, poke_name.c_str(), i + 1);
-          return SMResult::failure();
+          return SMResult::make_result(SMResultCodes::failure,
+                                       "poke:'%s' (poke #%d) failed with error:'%s is not a valid name'.",
+                                       poke_name.c_str(), i + 1, poke_name.c_str());
         }
 
-        auto validate_results = sm_poke->validate_args(poke_args_list[i]);
-        if (!validate_results.succeeded()) {
-          RCLCPP_ERROR(machine_.impl_.node_.get_logger(),
-                       "YAML parse of poke_list_%d failed: poke %s (poke #%d) validate_args failed with error: '%s'.",
-                       poke_list_idx, poke_name.c_str(), i + 1, validate_results.msg().c_str());
-          return SMResult::failure();
+        auto res = sm_poke->validate_args(poke_args_list[i]);
+        if (!res.succeeded()) {
+          return SMResult::make_result(res.code(),
+                                       "poke:'%s' (poke #%d) failed with error:'%s'.",
+                                       poke_name.c_str(), i + 1, res.msg().c_str());
         }
       }
 
@@ -261,22 +258,30 @@ namespace provoke
 
       for (size_t i = 0; i < poke_lists_.size(); i += 1) {
         poke_list_valids_[i] = false;
+        SMResult res;
         if (!yaml_parser.from_string(*poke_lists_[i])) {
-          RCLCPP_ERROR(machine_.impl_.node_.get_logger(),
-                       "YAML parse of poke_list_%d failed with error: '%s'",
-                       i + 1, yaml_parser.error_msg_.c_str());
+          res = SMResult::make_result(SMResultCodes::failure,
+                                      "YAML parse failed with error: '%s'",
+                                      yaml_parser.error_msg_.c_str());
 
         } else {
-          auto res = validate_sm_args(poke_name_list, poke_args_list, i + 1);
+          auto res = validate_sm_args(poke_name_list, poke_args_list);
           if (!res.succeeded()) {
-            RCLCPP_ERROR(machine_.impl_.node_.get_logger(),
-                         "validate args of poke_list_%d failed with error: '%s'",
-                         i + 1, res.msg().c_str());
+            res = SMResult::make_result(res.code(),
+                                        "validate_sm_args() failed with error: '%s'",
+                                        res.msg().c_str());
 
           } else {
             poke_list_valids_[i] = true;
+          }
+
+          if (res.succeeded()) {
             RCLCPP_INFO(machine_.impl_.node_.get_logger(),
-                        "YAML parse of poke_list_%d succeeded", i + 1);
+                        "validate_parameters() of poke_list_%d succeeded", i + 1);
+          } else {
+            RCLCPP_ERROR(machine_.impl_.node_.get_logger(),
+                         "validate_parameters() of poke_list_%d failed with error: '%s'",
+                         i + 1, res.msg().c_str());
           }
         }
       }
