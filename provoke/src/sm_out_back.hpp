@@ -26,16 +26,16 @@ namespace provoke
 
       Hub(Machine &machine);
 
-      SMResult prepare(tf2::Vector3 velocity_mps, rclcpp::Duration go_duration, rclcpp::Duration stop_duration,
-                       double msg_rate_hz)
+      SMResult sm_prepare(tf2::Vector3 velocity_mps, rclcpp::Duration go_duration, rclcpp::Duration stop_duration,
+                          double msg_rate_hz)
       {
         auto velocity_back = velocity_mps * -1;
         auto velocity_stop = tf2::Vector3{};
 
-        sm_prepare(*gos_[0], velocity_mps, go_duration, msg_rate_hz);
-        sm_prepare(*gos_[1], velocity_stop, stop_duration, msg_rate_hz);
-        sm_prepare(*gos_[2], velocity_back, go_duration, msg_rate_hz);
-        sm_prepare(*gos_[3], velocity_stop, stop_duration, msg_rate_hz);
+        gos_[0]->hub_.sm_prepare(velocity_mps, go_duration, msg_rate_hz);
+        gos_[1]->hub_.sm_prepare(velocity_stop, stop_duration, msg_rate_hz);
+        gos_[2]->hub_.sm_prepare(velocity_back, go_duration, msg_rate_hz);
+        gos_[3]->hub_.sm_prepare(velocity_stop, stop_duration, msg_rate_hz);
 
         return set_running();
       }

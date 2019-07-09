@@ -10,7 +10,7 @@ namespace provoke
       return machine_.set_state(machine_.ready_);
     }
 
-    SMResult Hub::prepare(tf2::Vector3 velocity_mps, rclcpp::Duration duration, double msg_rate_hz)
+    SMResult Hub::sm_prepare(tf2::Vector3 velocity_mps, rclcpp::Duration duration, double msg_rate_hz)
     {
       velocity_mps_ = velocity_mps;
       auto res = machine_.ready_.prepare(duration, msg_rate_hz);
@@ -36,15 +36,8 @@ namespace provoke
     }
   }
 
-  std::unique_ptr<sm_go::Machine> sm_go_factory(provoke::ProvokeNodeImpl &impl)
+  std::unique_ptr <sm_go::Machine> sm_go_factory(provoke::ProvokeNodeImpl &impl)
   {
     return std::make_unique<sm_go::Machine>(impl);
   }
-
-  SMResult sm_prepare(sm_go::Machine &machine, tf2::Vector3 velocity_mps,
-                      rclcpp::Duration duration, double msg_rate_hz)
-  {
-    return machine.hub_.prepare(velocity_mps, duration, msg_rate_hz);
-  }
-
 }

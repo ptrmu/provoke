@@ -27,7 +27,7 @@ namespace provoke
         machine_{machine}, action_{action}
       {}
 
-      SMResult prepare();
+      SMResult sm_prepare();
 
       SMResult set_ready();
 

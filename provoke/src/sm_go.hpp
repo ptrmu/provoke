@@ -26,7 +26,7 @@ namespace provoke
         machine_{machine}
       {}
 
-      SMResult prepare(tf2::Vector3 velocity_mps, rclcpp::Duration duration, double msg_rate_hz);
+      SMResult sm_prepare(tf2::Vector3 velocity_mps, rclcpp::Duration duration, double msg_rate_hz);
 
       SMResult set_ready();
 

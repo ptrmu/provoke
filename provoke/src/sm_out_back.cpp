@@ -32,10 +32,4 @@ namespace provoke
   {
     return std::make_unique<sm_out_back::Machine>(impl);
   }
-
-  SMResult sm_prepare(sm_out_back::Machine &machine, tf2::Vector3 velocity_mps,
-                      rclcpp::Duration go_duration, rclcpp::Duration stop_duration, double msg_rate_hz)
-  {
-    return machine.hub_.prepare(velocity_mps, go_duration, stop_duration, msg_rate_hz);
-  }
 }

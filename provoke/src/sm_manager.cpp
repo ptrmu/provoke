@@ -282,7 +282,7 @@ namespace provoke
       }
     }
 
-    SMResult Hub::prepare()
+    SMResult Hub::sm_prepare()
     {
       RCLCPP_INFO(machine_.impl_.node_.get_logger(),
                   "Prepare sm:%s",
@@ -324,10 +324,4 @@ namespace provoke
   {
     return std::make_unique<sm_manager::Machine>(impl);
   }
-
-  SMResult sm_prepare(sm_manager::Machine &machine)
-  {
-    return machine.hub_.prepare();
-  }
-
 }

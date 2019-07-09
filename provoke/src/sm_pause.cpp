@@ -5,7 +5,7 @@ namespace provoke
 {
   namespace sm_pause
   {
-    SMResult Hub::prepare(rclcpp::Duration duration)
+    SMResult Hub::sm_prepare(rclcpp::Duration duration)
     {
       RCLCPP_INFO(machine_.impl_.node_.get_logger(),
                   "Prepare sm:%s (duration:%7.3f sec.)",
@@ -59,7 +59,7 @@ namespace provoke
       if (!res.succeeded()) {
         return res;
       }
-      return hub_.prepare(duration);
+      return hub_.sm_prepare(duration);
     }
   }
 
@@ -67,10 +67,4 @@ namespace provoke
   {
     return std::make_unique<sm_pause::Machine>(impl);
   }
-
-  SMResult sm_prepare(sm_pause::Machine &machine, rclcpp::Duration duration)
-  {
-    return machine.hub_.prepare(duration);
-  }
-
 }

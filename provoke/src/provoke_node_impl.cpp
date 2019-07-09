@@ -14,7 +14,7 @@ namespace provoke
   ProvokeNodeImpl::ProvokeNodeImpl(rclcpp::Node &node) :
     node_{node}, sm_manager_{sm_manager_factory(*this)}
   {
-    sm_prepare(*sm_manager_);
+    sm_manager_->hub_.sm_prepare();
 
     timer_ = node_.create_wall_timer(
       std::chrono::milliseconds{timer_interval_ms},

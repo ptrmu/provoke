@@ -130,16 +130,12 @@ namespace provoke
 
   std::unique_ptr<sm_send_action::Machine> sm_send_action_factory(ProvokeNodeImpl &impl, const std::string &action);
 
-  SMResult sm_prepare(sm_send_action::Machine &machine);
-
   namespace sm_pause
   {
     class Machine;
   }
 
   std::unique_ptr<sm_pause::Machine> sm_pause_factory(ProvokeNodeImpl &impl);
-
-  SMResult sm_prepare(sm_pause::Machine &machine, rclcpp::Duration duration);
 
   namespace sm_go
   {
@@ -148,17 +144,11 @@ namespace provoke
 
   std::unique_ptr<sm_go::Machine> sm_go_factory(ProvokeNodeImpl &impl);
 
-  SMResult sm_prepare(sm_go::Machine &machine, tf2::Vector3 velocity_mps,
-                      rclcpp::Duration duration, double msg_rate_hz);
-
   namespace sm_out_back
   {
     class Machine;
   }
 
   std::unique_ptr<sm_out_back::Machine> sm_out_back_factory(ProvokeNodeImpl &impl);
-
-  SMResult sm_prepare(sm_out_back::Machine &machine, tf2::Vector3 velocity_mps,
-                      rclcpp::Duration go_duration, rclcpp::Duration stop_duration, double msg_rate_hz);
 }
 #endif //STATE_MACHINE_INTERFACE_HPP

@@ -5,7 +5,7 @@ namespace provoke
 {
   namespace sm_send_action
   {
-    SMResult Hub::prepare()
+    SMResult Hub::sm_prepare()
     {
       RCLCPP_INFO(machine_.impl_.node_.get_logger(),
                   "Prepare sm:%s(%s)",
@@ -48,7 +48,7 @@ namespace provoke
       if (!res.succeeded()) {
         return res;
       }
-      return hub_.prepare();
+      return hub_.sm_prepare();
     }
   }
 

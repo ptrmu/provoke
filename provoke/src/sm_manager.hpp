@@ -69,7 +69,7 @@ namespace provoke
 
       StateMachineInterface *find_state_machine(std::string &poke_name);
 
-      SMResult prepare();
+      SMResult sm_prepare();
 
       SMResult set_running(const std::string &poke_list);
 

@@ -25,7 +25,7 @@ namespace provoke
         machine_{machine}
       {}
 
-      SMResult prepare(rclcpp::Duration duration);
+      SMResult sm_prepare(rclcpp::Duration duration);
 
       SMResult set_ready(rclcpp::Duration duration);
 
