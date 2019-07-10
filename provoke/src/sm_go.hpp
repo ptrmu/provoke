@@ -3,6 +3,7 @@
 
 #include <memory>
 
+#include "geometry_msgs/msg/twist.hpp"
 #include "provoke_node_impl.hpp"
 #include "state_machine_interface.hpp"
 
@@ -21,10 +22,10 @@ namespace provoke
       Machine &machine_;
       tf2::Vector3 velocity_mps_;
 
+      rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
+
     public:
-      explicit Hub(Machine &machine) :
-        machine_{machine}
-      {}
+      explicit Hub(Machine &machine);
 
       SMResult sm_prepare(tf2::Vector3 velocity_mps, rclcpp::Duration duration, double msg_rate_hz);
 
@@ -124,12 +125,11 @@ namespace provoke
 
     class Machine : public StateMachineInterface
     {
-      Hub hub_;
-
       SMResult _validate_args(const StateMachineArgs &args, tf2::Vector3 &velocity_mps,
                               rclcpp::Duration &duration, double &msg_rate_hz);
 
     public:
+      Hub hub_;
       Ready ready_;
       Waiting waiting_;
 

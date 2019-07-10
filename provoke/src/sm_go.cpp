@@ -5,12 +5,18 @@ namespace provoke
 {
   namespace sm_go
   {
+    Hub::Hub(Machine &machine) :
+      machine_{machine}
+    {
+      cmd_vel_pub_ = machine_.impl_.node_.create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 1);
+    }
+
     SMResult Hub::set_ready()
     {
       return machine_.set_state(machine_.ready_);
     }
 
-    SMResult Hub::sm_prepare(const tf2::Vector3 &velocity_mps, const rclcpp::Duration &duration, double msg_rate_hz)
+    SMResult Hub::sm_prepare(tf2::Vector3 velocity_mps, rclcpp::Duration duration, double msg_rate_hz)
     {
       RCLCPP_INFO(machine_.impl_.node_.get_logger(),
                   "Prepare sm:%s (v:[%7.3f,%7.3f,%7.3f], duration:%7.3f sec., Hz:%7.3f)",
@@ -35,10 +41,22 @@ namespace provoke
       return machine_.set_state(machine_.waiting_);
     }
 
+    static double clamp(const double v, const double min, const double max)
+    {
+      return v > max ? max : (v < min ? min : v);
+    }
+
     void Hub::send_go()
     {
       RCLCPP_INFO(machine_.impl_.node_.get_logger(), "Send Go: x:%7.3f, y:%7.3f, z:%7.3f",
                   velocity_mps_.x(), velocity_mps_.y(), velocity_mps_.z());
+
+      geometry_msgs::msg::Twist twist;
+      twist.linear.x = clamp(velocity_mps_.x(), -1.0, 1.0);
+      twist.linear.y = clamp(velocity_mps_.y(), -1.0, 1.0);
+      twist.linear.z = clamp(velocity_mps_.z(), -1.0, 1.0);
+      twist.angular.z = clamp(0., -1.0, 1.0);
+      cmd_vel_pub_->publish(twist);
     }
 
     SMResult Machine::_validate_args(const StateMachineArgs &args, tf2::Vector3 &velocity_mps,

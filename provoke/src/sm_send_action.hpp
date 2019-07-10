@@ -5,6 +5,7 @@
 
 #include "provoke_node_impl.hpp"
 #include "state_machine_interface.hpp"
+#include "tello_msgs/srv/tello_action.hpp"
 
 namespace provoke
 {
@@ -20,13 +21,16 @@ namespace provoke
     {
       Machine &machine_;
 
+      rclcpp::Subscription<tello_msgs::msg::TelloResponse>::SharedPtr tello_response_sub_;
+
     public:
       const std::string action_;
       double &timeout_sec_;
 
-      Hub(Machine &machine, std::string action, double &timeout_sec) :
-        machine_{machine}, action_{std::move(action)}, timeout_sec_{timeout_sec}
-      {}
+      rclcpp::Client<tello_msgs::srv::TelloAction>::SharedPtr action_client_;
+      tello_msgs::msg::TelloResponse::SharedPtr tello_response_;
+
+      Hub(Machine &machine, std::string action, double &timeout_sec);
 
       SMResult sm_prepare();
 
@@ -69,8 +73,11 @@ namespace provoke
 
     class Waiting : public provoke::StateInterface
     {
+      using ActionFuture = std::shared_future<tello_msgs::srv::TelloAction::Response::SharedPtr>;
+
       Hub &hub_;
       rclcpp::Time timeout_time_{};
+      ActionFuture action_future_{};
 
     public:
       Waiting(StateMachineInterface &machine, provoke::ProvokeNodeImpl &impl, Hub &hub) :
@@ -80,22 +87,19 @@ namespace provoke
       SMResult prepare(rclcpp::Time timeout_time)
       {
         timeout_time_ = timeout_time;
+
+        // Make the request and save the future.
+        auto request = std::make_shared<tello_msgs::srv::TelloAction::Request>();
+        request->cmd = hub_.action_;
+        action_future_ = hub_.action_client_->async_send_request(request);
+
+        // Clear out the response. This will be assigned by the callback.
+        hub_.tello_response_.reset();
+
         return SMResult::success();
       }
 
-      SMResult on_timer(rclcpp::Time now) override
-      {
-        // If the timeout time has been exceeded, then we have a failure
-        // and the manager should stop processing.
-        if (now > timeout_time_) {
-          return SMResult{SMResultCodes::failure, "send_action timed out."};
-        }
-
-        // Check the future. If it hasn't returned, then return success.
-        // If it had no error, also return success. If it had a problem, then
-        // return failure.
-        return SMResult::success();
-      }
+      SMResult on_timer(rclcpp::Time now) override;
 
       SMResult on_tello_response(tello_msgs::msg::TelloResponse *msg) override
       {

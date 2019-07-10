@@ -17,7 +17,6 @@ namespace provoke
     std::unique_ptr<sm_manager::Machine> sm_manager_;
     rclcpp::TimerBase::SharedPtr timer_{};
 
-
   public:
     ProvokeNodeImpl(rclcpp::Node &node);
 

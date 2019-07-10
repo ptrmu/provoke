@@ -15,15 +15,15 @@ namespace provoke
 
     class YamlParser;
 
-#define PK1 "\n- out_back: {v_y: 1.0, v_z: 0.1, dur_out: 3, dur_back: 1, hz: 1}\n- pause: 1"
-#define PK2 "\n- takeoff\n- land\n- pause: 1"
-#define PK3 "\n- takeoff\n- go: {duration: 1.5, hz: 30}\n- land\n- pause: 1"
-#define PK4 "\n- takeoff\n- out_back: {vel_x: 0.0, vel_x: 1.0, vel_x: 0.1, dur_out: 1.5, dur_back: 0.5, hz: 5}\n- land"
+#define PK1 "\n- land\n- pause: 1"
+#define PK2 "\n- pause: 3\n- takeoff\n- land\n- pause: 1"
+#define PK3 "\n- pause: 1\n- takeoff\n- go: {duration: 2, hz: 5}\n- go: {v_y: 0.2, duration: 5, hz: 5}\n- land\n- pause: 1"
+#define PK4 "\n- pause: 3\n- takeoff\n- out_back: {v_y: 0.1, dur_out: 3, dur_back: 1, hz: 1}\n- land"
 
 #define SM_MANAGER_ALL_PARAMS \
-  CXT_MACRO_MEMBER(poke_list_go, int, 1) /* poke list to execute */\
-  CXT_MACRO_MEMBER(land_timeout_sec, double, 5.0) /* time before land action timeouts */\
-  CXT_MACRO_MEMBER(takeoff_timeout_sec, double, 5.0) /* time before takeoff action timeouts */\
+  CXT_MACRO_MEMBER(poke_list_go, int, 3) /* poke list to execute */\
+  CXT_MACRO_MEMBER(land_timeout_sec, double, 10.0) /* time before land action timeouts */\
+  CXT_MACRO_MEMBER(takeoff_timeout_sec, double, 10.0) /* time before takeoff action timeouts */\
   CXT_MACRO_MEMBER(poke_list_1, std::string, PK1) /* poke_list 1 */ \
   CXT_MACRO_MEMBER(poke_list_2, std::string, PK2) /* poke_list 1 */ \
   CXT_MACRO_MEMBER(poke_list_3, std::string, PK3) /* poke_list 1 */ \
