@@ -25,7 +25,7 @@ def generate_action_list(tello_ros_args, vloc_args, vmap_args, rviz_filename):
 
     main_actions = [
         generate_rviz_execute_process(rviz_filename),
-        Node(package='fiducial_vlam', node_executable='vmap_node', output='screen',
+        Node(package='fiducial_vlam', node_executable='vmap_node_main', output='screen',
              node_name='vmap_node', parameters=vmap_args),
     ]
 
