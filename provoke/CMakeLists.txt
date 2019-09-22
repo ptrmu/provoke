@@ -5,20 +5,20 @@ set(provoke_MAJOR_VERSION 0)
 set(provoke_MINOR_VERSION 0)
 set(provoke_PATCH_VERSION 0)
 set(provoke_VERSION
-  ${provoke_MAJOR_VERSION}.${provoke_MINOR_VERSION}.${provoke_PATCH_VERSION})
+        ${provoke_MAJOR_VERSION}.${provoke_MINOR_VERSION}.${provoke_PATCH_VERSION})
 
 # Default to C99
 if (NOT CMAKE_C_STANDARD)
-  set(CMAKE_C_STANDARD 99)
+    set(CMAKE_C_STANDARD 99)
 endif ()
 
 # Default to C++14
 if (NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
+    set(CMAKE_CXX_STANDARD 14)
 endif ()
 
 if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+    add_compile_options(-Wall -Wextra -Wpedantic)
 endif ()
 
 
@@ -31,46 +31,46 @@ find_package(yaml_cpp_vendor REQUIRED)
 
 # Local includes
 include_directories(include
-  ${geometry_msgs_INCLUDE_DIRS}
-  ${rclcpp_INCLUDE_DIRS}
-  ${ros2_shared_INCLUDE_DIRS}
-  ${tello_msgs_INCLUDE_DIRS}
-  ${yaml_cpp_vendor_INCLUDE_DIRS}
-  )
+        ${geometry_msgs_INCLUDE_DIRS}
+        ${rclcpp_INCLUDE_DIRS}
+        ${ros2_shared_INCLUDE_DIRS}
+        ${tello_msgs_INCLUDE_DIRS}
+        ${yaml_cpp_vendor_INCLUDE_DIRS}
+        )
 
 add_executable(${PROJECT_NAME}
   src/provoke_node_impl.cpp
-  src/provoke_node_main.cpp
-  src/sm_go.cpp
-  src/sm_manager.cpp
-  src/sm_out_back.cpp
-  src/sm_pause.cpp
-  src/sm_send_action.cpp
-  src/state_machine_interface.cpp
-  )
+        src/provoke_node_main.cpp
+        src/sm_go.cpp
+        src/sm_manager.cpp
+        src/sm_out_back.cpp
+        src/sm_pause.cpp
+        src/sm_send_action.cpp
+        src/state_machine_interface.cpp
+  src/yaml_args.cpp src/yaml_args.hpp src/result.cpp src/result.hpp src/timer_machine_pause.cpp src/timer_interface.cpp src/dispatch_interface.cpp src/dispatch_interface.hpp src/timer_dispatch.cpp src/timer_dispatch.hpp src/base_interface.cpp src/base_interface.hpp src/base_machine.cpp)
 
 ament_target_dependencies(${PROJECT_NAME}
-  geometry_msgs
-  rclcpp
-  ros2_shared
-  tello_msgs
-  yaml_cpp_vendor
-  )
+        geometry_msgs
+        rclcpp
+        ros2_shared
+        tello_msgs
+        yaml_cpp_vendor
+        )
 
 #=============
 # Install
 #=============
 
 install(TARGETS ${PROJECT_NAME}
-  DESTINATION lib/${PROJECT_NAME}
-  )
+        DESTINATION lib/${PROJECT_NAME}
+        )
 
 # Install various directories
 install(DIRECTORY
-  cfg
-  launch
-  DESTINATION share/${PROJECT_NAME}
-  )
+        cfg
+        launch
+        DESTINATION share/${PROJECT_NAME}
+        )
 
 
 ament_package()
