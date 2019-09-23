@@ -10,6 +10,8 @@ namespace provoke
 {
   class YamlArgs;
 
+  class YamlSeq;
+
   class TimerInterface : public BaseInterface
   {
   public:
@@ -27,6 +29,9 @@ namespace provoke
 
     Result validate_cmd_seq(YamlArgs &args,
                             std::function<std::unique_ptr<TimerInterface>(const std::string &)> get_machine);
+
+    Result prepare_cmd_from_args(YamlSeq &seq,
+                                 std::function<TimerInterface *(const std::string &)> get_machine);
   };
 }
 

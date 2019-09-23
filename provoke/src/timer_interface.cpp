@@ -87,8 +87,66 @@ namespace provoke
     }
 
     return Result::success();
-
   }
 
+  Result TimerInterface::prepare_cmd_from_args(YamlSeq &seq,
+                                               std::function<TimerInterface *(const std::string &)> get_machine)
+  {
+    // If we are at the end of the sequence, then return conclusion
+    if (seq.done()) {
+      return Result::conclusion();
+    }
+
+    // Get the command from this item in the sequence.
+    std::string cmd;
+    auto result = seq.get_cmd(cmd);
+
+    // If we couldn't get a command return the error.
+    if (!result.succeeded()) {
+      return result;
+    }
+
+    // An empty command also is an error.
+    if (cmd.empty()) {
+      return Result::make_result(ResultCodes::parse_error, "Command is empty. (prepare)");
+    }
+
+    // get a machine for this command
+    std::unique_ptr<YamlArgs> args;
+    result = seq.get_args(args);
+
+    // If we couldn't get args return the error.
+    if (!result.succeeded()) {
+      return result;
+    }
+
+    auto machine = get_machine(cmd);
+
+    // If we couldn't get a machine, then the name is bad
+    if (machine == nullptr) {
+      return Result::make_result(ResultCodes::parse_error, "Machine %s could not be found. (prepare)", cmd.c_str());
+    }
+
+    // Get the args for this cmd
+    std::unique_ptr<YamlArgs> cmd_args;
+    result = seq.get_args(cmd_args);
+
+    // Return any error
+    if (!result.succeeded()) {
+      return result;
+    }
+
+    // Ask the machine to validate the args
+    result = machine->prepare_from_args(*args);
+
+    // Return any error
+    if (!result.succeeded()) {
+      return result;
+    }
+
+    // Move to the next command in the sequence.
+    seq.next();
+    return Result::success();
+  }
 }
 

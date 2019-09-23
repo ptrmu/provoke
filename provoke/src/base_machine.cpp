@@ -16,12 +16,12 @@ namespace provoke
 
 #define PK0 "[pause: {dur: 5}, pause: {duration: 3}, pause: 3, pause]"
 #define PK1 "[par: [[pause: 2], [pause: 3]]]"
-#define PK2 ""
+#define PK2 "[pause: {dur: 1}]"
 #define PK3 ""
 #define PK4 ""
 
 #define BASE_MACHINE_ALL_PARAMS \
-  CXT_MACRO_MEMBER(cmds_go, int, 1) /* poke list to execute */\
+  CXT_MACRO_MEMBER(cmds_go, int, 0) /* poke list to execute */\
   CXT_MACRO_MEMBER(cmds_0, std::string, PK0) /* Sequence of commands 0 */ \
   CXT_MACRO_MEMBER(cmds_1, std::string, PK1) /* Sequence of commands 1 */ \
   CXT_MACRO_MEMBER(cmds_2, std::string, PK2) /* Sequence of commands 2 */ \
@@ -39,7 +39,7 @@ namespace provoke
       enum class States
       {
         ready = 0,
-        running = 1,
+        running,
       };
 
       States state_{States::ready};
@@ -174,7 +174,7 @@ namespace provoke
         }
 
         // Transition to running state
-        state_ = States::ready;
+        state_ = States::running;
         return Result::success();
       }
 

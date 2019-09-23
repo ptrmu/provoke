@@ -1,4 +1,5 @@
 
+#include "provoke_node_impl.hpp"
 #include "timer_dispatch.hpp"
 #include "yaml_args.hpp"
 
@@ -8,16 +9,18 @@ namespace provoke
   {
     enum class States
     {
-      ready = 0,
+      concluded = 0,
       waiting,
-      timeout,
-      logic_error,
-      failure,
+      running,
     };
 
     class Machine : public TimerInterface
     {
       TimerDispatch &dispatch_;
+
+      States state_{States::concluded};
+      rclcpp::Duration duration_{0, 0};
+      rclcpp::Time end_time_{};
 
     public:
       explicit Machine(TimerDispatch &dispatch)
@@ -26,10 +29,40 @@ namespace provoke
 
       ~Machine() override = default;
 
+      Result on_timer_waiting(rclcpp::Time now)
+      {
+        // Set the end time.
+        end_time_ = now + duration_;
+        state_ = States::running;
+
+        // Call running state in case the timer has already expired.
+        return on_timer_running(now);
+      }
+
+      Result on_timer_running(rclcpp::Time now)
+      {
+        // If we haven't reached the end time, then continue running.
+        if (now <= end_time_) {
+          return Result::success();
+        }
+
+        // Time has expired
+        state_ = States::concluded;
+        return Result::conclusion();
+      }
+
       Result on_timer(rclcpp::Time now) override
       {
-        (void) now;
-        return Result::failure();
+        switch(state_) {
+          case States::waiting:
+            return on_timer_waiting(now);
+
+          case States::running:
+            return on_timer_running(now);
+
+          default:
+            return Result::conclusion();
+        }
       }
 
       Result _validate_args(YamlArgs &args, rclcpp::Duration &duration)
@@ -60,8 +93,18 @@ namespace provoke
 
       Result prepare_from_args(YamlArgs &args) override
       {
-        (void) args;
-        return Result::failure();
+        auto result = _validate_args(args, duration_);
+        if (!result.succeeded()) {
+          state_ = States::concluded;
+          return result;
+        }
+
+        RCLCPP_INFO(impl_.node_.get_logger(),
+                    "Prepare sm:%s (duration:%7.3f sec.)",
+                    name_.c_str(), duration_.seconds());
+
+        state_ = States::waiting;
+        return Result::success();
       }
     };
 

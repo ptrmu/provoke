@@ -6,9 +6,30 @@
 
 namespace provoke
 {
+  class YamlSeq;
+
   class TimerDispatch : public TimerInterface
   {
-    std::unique_ptr<TimerInterface> timer_machine_pause_;
+    enum class States
+    {
+      concluded = 0,
+      running,
+    };
+
+    States state_{States::concluded};
+
+    std::unique_ptr<YamlSeq> running_seq_;
+    std::unique_ptr<TimerInterface> running_machine_;
+
+    std::unique_ptr<TimerInterface> new_machine(const std::string &cmd);
+
+    void set_concluded(void);
+
+    Result prepare_cmd_from_seq(void);
+
+    Result on_timer_concluded(rclcpp::Time now);
+
+    Result on_timer_running(rclcpp::Time now);
 
   public:
     int group_index_;
