@@ -14,19 +14,19 @@ namespace provoke
     // Parameters
     // ==============================================================================
 
-#define PK0 "pause"
-#define PK1 "\n- land\n- pause: 1"
-#define PK2 "\n- pause: 3\n- takeoff\n- land\n- pause: 1"
-#define PK3 "\n- pause: 1\n- takeoff\n- go: {duration: 2, hz: 5}\n- go: {v_y: 0.2, duration: 5, hz: 5}\n- land\n- pause: 1"
-#define PK4 "\n- pause: 3\n- takeoff\n- out_back: {v_y: 0.1, dur_out: 3, dur_back: 1, hz: 1}\n- land"
+#define PK0 "[pause: {dur: 5}, pause: {duration: 3}, pause: 3, pause]"
+#define PK1 "[par: [[pause: 2], [pause: 3]]]"
+#define PK2 ""
+#define PK3 ""
+#define PK4 ""
 
 #define BASE_MACHINE_ALL_PARAMS \
-  CXT_MACRO_MEMBER(cmds_go, int, 0) /* poke list to execute */\
-  CXT_MACRO_MEMBER(cmds_0, std::string, PK0) /* poke_list 1 */ \
-  CXT_MACRO_MEMBER(cmds_1, std::string, PK1) /* poke_list 1 */ \
-  CXT_MACRO_MEMBER(cmds_2, std::string, PK2) /* poke_list 1 */ \
-  CXT_MACRO_MEMBER(cmds_3, std::string, PK3) /* poke_list 1 */ \
-  CXT_MACRO_MEMBER(cmds_4, std::string, PK4) /* poke_list 1 */ \
+  CXT_MACRO_MEMBER(cmds_go, int, 1) /* poke list to execute */\
+  CXT_MACRO_MEMBER(cmds_0, std::string, PK0) /* Sequence of commands 0 */ \
+  CXT_MACRO_MEMBER(cmds_1, std::string, PK1) /* Sequence of commands 1 */ \
+  CXT_MACRO_MEMBER(cmds_2, std::string, PK2) /* Sequence of commands 2 */ \
+  CXT_MACRO_MEMBER(cmds_3, std::string, PK3) /* Sequence of commands 3 */ \
+  CXT_MACRO_MEMBER(cmds_4, std::string, PK4) /* Sequence of commands 4 */ \
   /* End of list */
 
 
@@ -45,14 +45,9 @@ namespace provoke
       States state_{States::ready};
 
       int cmds_go_last_{-1};
-      std::string running_cmds_{};
-      std::unique_ptr<YamlArgs> running_yaml_args_{};
 
       void validate_parameters()
       {
-#undef CXT_MACRO_MEMBER
-#define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_LOG_PARAMETER(RCLCPP_INFO, impl_.node_.get_logger(), (*this), n, t, d)
-        BASE_MACHINE_ALL_PARAMS
       }
 
 #undef CXT_MACRO_MEMBER
@@ -70,6 +65,10 @@ namespace provoke
 #undef CXT_MACRO_MEMBER
 #define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_PARAMETER_CHANGED((*this), n, t)
         CXT_MACRO_REGISTER_PARAMETERS_CHANGED(impl_.node_, BASE_MACHINE_ALL_PARAMS, validate_parameters)
+
+#undef CXT_MACRO_MEMBER
+#define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_LOG_PARAMETER(RCLCPP_INFO, impl_.node_.get_logger(), (*this), n, t, d)
+        BASE_MACHINE_ALL_PARAMS
       }
 
       ~Machine() override = default;
@@ -85,45 +84,44 @@ namespace provoke
         // Pick one of the lists of commands to execute. Make a copy
         // of the string because it needs to stay around while it is being
         // executed. The parameter itself could change during excution.
-        running_cmds_.clear();
+        std::string cmds;
         cmds_go_last_ = cmds_go_;
         switch (cmds_go_) {
           case 0:
-            running_cmds_ = cmds_0_;
+            cmds = cmds_0_;
             break;
           case 1:
-            running_cmds_ = cmds_1_;
+            cmds = cmds_1_;
             break;
           case 2:
-            running_cmds_ = cmds_2_;
+            cmds = cmds_2_;
             break;
           case 3:
-            running_cmds_ = cmds_3_;
+            cmds = cmds_3_;
             break;
           case 4:
-            running_cmds_ = cmds_4_;
+            cmds = cmds_4_;
             break;
-        }
-
-        // Error if out of range
-        if (running_cmds_.empty()) {
         }
 
         // We have picked up this command, so reset the go parameter.
         CXT_MACRO_SET_PARAMETER(impl_.node_, (*this), cmds_go, -1);
 
         // Error if out of range
-        if (running_cmds_.empty()) {
+        if (cmds.empty()) {
           RCLCPP_ERROR(impl_.node_.get_logger(),
                        "cmds_go value of %d is out of range.",
                        cmds_go_last_);
           return Result::success();
         }
 
+        RCLCPP_INFO(impl_.node_.get_logger(),
+                    "Preparing to execute cmds_%d",
+                    cmds_go_last_);
+
         // Prepare to parse the command list.
-        Result result;
-        YamlArgs validate_yaml_args{};
-        result = validate_yaml_args.from_string(running_cmds_.c_str());
+        auto running_yaml_holder = std::make_shared<YamlHolder>();
+        auto result = running_yaml_holder->from_string(cmds.c_str());
 
         // If the initial parse failed, report this and exit
         if (!result.succeeded()) {
@@ -133,8 +131,20 @@ namespace provoke
           return Result::success();
         }
 
+        // Get a YamlArgs.
+        std::unique_ptr<YamlArgs> yaml_args;
+        result = running_yaml_holder->get_args(running_yaml_holder, yaml_args);
+
+        // If the we couldn't get args, report this and exit
+        if (!result.succeeded()) {
+          RCLCPP_ERROR(impl_.node_.get_logger(),
+                       "get_args failed for cmds_%d with error: %s",
+                       cmds_go_last_, result.msg().c_str());
+          return Result::success();
+        }
+
         // Validate the cmds.
-        result = impl_.timer_dispatch_->validate_args(validate_yaml_args);
+        result = impl_.timer_dispatch_->validate_args(*yaml_args);
         if (!result.succeeded()) {
           RCLCPP_ERROR(impl_.node_.get_logger(),
                        "Validate failed for cmds_%d with error: %s",
@@ -142,12 +152,8 @@ namespace provoke
           return Result::success();
         }
 
-        // Have valid cmds. Create a YamlArgs for use during the execution.
-        running_yaml_args_ = std::make_unique<YamlArgs>();
-        result = running_yaml_args_->from_string(running_cmds_.c_str());
-
         // Prepare for execution
-        result = impl_.timer_dispatch_->prepare_from_args(*running_yaml_args_);
+        result = impl_.timer_dispatch_->prepare_from_args(*yaml_args);
         if (!result.succeeded()) {
           RCLCPP_ERROR(impl_.node_.get_logger(),
                        "Prepare failed for cmds_%d with error: %s",

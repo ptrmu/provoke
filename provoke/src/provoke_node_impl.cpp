@@ -16,17 +16,23 @@ namespace provoke
 
   ProvokeNodeImpl::ProvokeNodeImpl(rclcpp::Node &node) :
     node_{node},
-    timer_dispatch_{std::make_unique<TimerDispatch>(*this)},
+    timer_dispatch_{std::make_unique<TimerDispatch>(*this, 0)},
+    timer_dispatchs_{},
     sm_manager_{sm_manager_factory(*this)},
     base_machine_{base_machine::factory(*this)}
   {
     sm_manager_->hub_.sm_prepare();
 
+    for (int i = 0; i < 4; i += 1) {
+      timer_dispatchs_.emplace_back(std::make_unique<TimerDispatch>(*this, i));
+    }
+
+
     timer_ = node_.create_wall_timer(
       std::chrono::milliseconds{timer_interval_ms},
       [this]() -> void
       {
-        sm_manager_->state().on_timer(node_.now());
+        //sm_manager_->state().on_timer(node_.now());
         base_machine_->on_timer(node_.now());
       });
   }

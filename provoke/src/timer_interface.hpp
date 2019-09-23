@@ -24,13 +24,10 @@ namespace provoke
     virtual Result validate_args(YamlArgs &args);
 
     virtual Result prepare_from_args(YamlArgs &args);
+
+    Result validate_cmd_seq(YamlArgs &args,
+                            std::function<std::unique_ptr<TimerInterface>(const std::string &)> get_machine);
   };
-
-  namespace timer_machine_pause
-  {
-    std::unique_ptr<TimerInterface> factory(BaseInterface &dispatch);
-  }
-
 }
 
 #endif //TIMER_INTERFACE_HPP

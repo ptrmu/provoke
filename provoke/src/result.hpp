@@ -11,6 +11,7 @@ namespace provoke
     success = 0,
     conclusion,
     timeout,
+    parse_error,
     logic_error,
     failure,
   };

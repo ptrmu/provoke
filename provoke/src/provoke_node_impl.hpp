@@ -18,6 +18,7 @@ namespace provoke
     rclcpp::Node &node_;
     const long timer_interval_ms = 10;
     std::unique_ptr<TimerDispatch> timer_dispatch_;
+    std::vector<std::unique_ptr<TimerDispatch>> timer_dispatchs_;
 
   private:
     std::unique_ptr<sm_manager::Machine> sm_manager_;

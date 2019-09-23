@@ -2,33 +2,62 @@
 #ifndef YAML_ARGS_HPP
 #define YAML_ARGS_HPP
 
-#include "yaml-cpp/yaml.h"
+#include <functional>
 
 #include "result.hpp"
+#include "yaml-cpp/yaml.h"
 
 namespace provoke
 {
+  class TimerInterface;
+
+  class YamlHolder;
+
+  class YamlSeq;
+
   class YamlArgs
+  {
+    std::shared_ptr<YamlHolder> holder_;  // keep reference to holder so pointers don't expire.
+    YAML::Node yaml_node_;
+
+  public:
+    YamlArgs(std::shared_ptr<YamlHolder> &holder, YAML::Node yaml_node);
+
+    Result get_seq(std::unique_ptr<YamlSeq> &seq);
+
+    Result get_arg_str(const char *key, std::string &arg_str);
+  };
+
+  class YamlSeq
+  {
+    std::shared_ptr<YamlHolder> holder_;  // keep reference to holder so pointers don't expire.
+    YAML::Node::const_iterator it_{};
+    YAML::Node::const_iterator end_{};
+
+    Result get_cmd_args(std::string &cmd, YAML::Node &args);
+
+  public:
+    YamlSeq(std::shared_ptr<YamlHolder> &holder, YAML::Node &yaml_node);
+
+    bool done();
+
+    bool next();
+
+    Result get_cmd(std::string &cmd);
+
+    Result get_args(std::unique_ptr<YamlArgs> &args);
+  };
+
+  class YamlHolder
   {
     YAML::Node yaml_node_{};
 
   public:
-    YamlArgs() = default;
+    YamlHolder() = default;
 
-    Result from_string(const std::string &s)
-    {
-      std::stringstream ss{s};
-      Result result{};
+    Result from_string(const std::string &s);
 
-      try {
-        auto yaml_node = YAML::Load(ss);
-       }
-      catch (YAML::ParserException &ex) {
-       result = Result::make_result(ResultCodes::failure, "YAML parse error: '%s'", ex.what());
-      }
-      return result;
-    }
-
+    Result get_args(std::shared_ptr<YamlHolder> &holder, std::unique_ptr<YamlArgs> &args);
   };
 }
 #endif //YAML_ARGS_HPP
