@@ -32,7 +32,7 @@ namespace provoke
       return set_ready();
     }
 
-    SMResult Hub::set_waiting(rclcpp::Time end_time, rclcpp::Time next_msg_time, rclcpp::Duration inter_msg_duration)
+    SMResult Hub::set_waiting(const rclcpp::Time end_time, rclcpp::Time next_msg_time, rclcpp::Duration inter_msg_duration)
     {
       auto res = machine_.waiting_.prepare(end_time, next_msg_time, inter_msg_duration);
       if (!res.succeeded()) {

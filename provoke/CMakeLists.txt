@@ -39,6 +39,7 @@ include_directories(include
   )
 
 add_executable(${PROJECT_NAME}
+  src/args_interface.cpp
   src/provoke_node_impl.cpp
   src/provoke_node_main.cpp
   src/sm_go.cpp
@@ -51,12 +52,14 @@ add_executable(${PROJECT_NAME}
   src/result.cpp
   src/timer_machine_par.cpp
   src/timer_machine_pause.cpp
-  src/timer_interface.cpp
+  src/timer_machine_tello.cpp
   src/dispatch_interface.cpp
   src/timer_dispatch.cpp
-  src/base_interface.cpp
+  src/timer_interface.cpp
   src/base_machine.cpp
-  )
+  src/tello_interface.cpp
+  src/tello_dispatch.cpp
+  src/tello_machine_takeoff.cpp src/tello_machine_land.cpp)
 
 ament_target_dependencies(${PROJECT_NAME}
   geometry_msgs

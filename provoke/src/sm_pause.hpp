@@ -29,7 +29,7 @@ namespace provoke
 
       SMResult set_ready(rclcpp::Duration duration);
 
-      SMResult set_waiting(rclcpp::Time end_time);
+      SMResult set_waiting(const rclcpp::Time end_time);
     };
 
     // ==============================================================================
@@ -52,7 +52,7 @@ namespace provoke
         return SMResult::success();
       }
 
-      SMResult on_timer(rclcpp::Time now) override
+      SMResult on_timer(const rclcpp::Time &now) override
       {
         auto end_time = now + duration_;
         return hub_.set_waiting(end_time);
@@ -73,13 +73,13 @@ namespace provoke
         StateInterface{"waiting", machine,  impl}, hub_{hub}
       {}
 
-      SMResult prepare(rclcpp::Time end_time)
+      SMResult prepare(const rclcpp::Time end_time)
       {
         end_time_ = end_time;
         return SMResult::success();
       }
 
-      SMResult on_timer(rclcpp::Time now) override
+      SMResult on_timer(const rclcpp::Time &now) override
       {
         return now < end_time_ ? SMResult::success() : SMResult::conclusion();
       }

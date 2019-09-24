@@ -42,7 +42,7 @@ namespace provoke
       return machine_.set_state(machine_.ready_);
     }
 
-    SMResult Hub::set_waiting(rclcpp::Time timeout_time)
+    SMResult Hub::set_waiting(const rclcpp::Time timeout_time)
     {
       auto res = machine_.waiting_.prepare(timeout_time);
       if (!res.succeeded()) {
@@ -51,7 +51,7 @@ namespace provoke
       return machine_.set_state(machine_.waiting_);
     }
 
-    SMResult Waiting::on_timer(rclcpp::Time now)
+    SMResult Waiting::on_timer(const rclcpp::Time &now)
     {
       // If the timeout time has been exceeded, then we have a failure
       // and the manager should stop processing.

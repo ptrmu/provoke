@@ -10,7 +10,9 @@ namespace provoke
 {
   class TimerDispatch;
 
-  class BaseInterface;
+  class TelloDispatch;
+
+  class TimerInterface;
 
   class ProvokeNodeImpl
   {
@@ -19,10 +21,11 @@ namespace provoke
     const long timer_interval_ms = 10;
     std::unique_ptr<TimerDispatch> timer_dispatch_;
     std::vector<std::unique_ptr<TimerDispatch>> timer_dispatches_;
+    std::vector<std::unique_ptr<TelloDispatch>> tello_dispatches_;
 
   private:
     std::unique_ptr<sm_manager::Machine> sm_manager_;
-    std::unique_ptr<BaseInterface> base_machine_;
+    std::unique_ptr<TimerInterface> base_machine_;
     rclcpp::TimerBase::SharedPtr timer_{};
 
   public:

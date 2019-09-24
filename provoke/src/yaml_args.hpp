@@ -2,14 +2,12 @@
 #ifndef YAML_ARGS_HPP
 #define YAML_ARGS_HPP
 
-#include <functional>
-
 #include "result.hpp"
 #include "yaml-cpp/yaml.h"
 
 namespace provoke
 {
-  class TimerInterface;
+  class ArgsInterface;
 
   class YamlHolder;
 

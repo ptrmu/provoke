@@ -14,7 +14,7 @@ namespace provoke
       running,
     };
 
-    class Machine : public TimerInterface
+    class Machine : public ArgsInterface
     {
       TimerDispatch &dispatch_;
 
@@ -24,12 +24,12 @@ namespace provoke
 
     public:
       explicit Machine(TimerDispatch &dispatch)
-        : TimerInterface{"timer_machine_pause", dispatch.impl_}, dispatch_{dispatch}
+        : ArgsInterface{"timer_machine_pause", dispatch.impl_}, dispatch_{dispatch}
       {}
 
       ~Machine() override = default;
 
-      Result on_timer_waiting(rclcpp::Time now)
+      Result on_timer_waiting(const rclcpp::Time &now)
       {
         // Set the end time.
         end_time_ = now + duration_;
@@ -39,7 +39,7 @@ namespace provoke
         return on_timer_running(now);
       }
 
-      Result on_timer_running(rclcpp::Time now)
+      Result on_timer_running(const rclcpp::Time &now)
       {
         // If we haven't reached the end time, then continue running.
         if (now <= end_time_) {
@@ -51,9 +51,9 @@ namespace provoke
         return Result::conclusion();
       }
 
-      Result on_timer(rclcpp::Time now) override
+      Result on_timer(const rclcpp::Time &now) override
       {
-        switch(state_) {
+        switch (state_) {
           case States::waiting:
             return on_timer_waiting(now);
 
@@ -100,17 +100,17 @@ namespace provoke
         }
 
         RCLCPP_INFO(impl_.node_.get_logger(),
-                    "Prepare %d sm:%s (duration:%7.3f sec.)",
-                    dispatch_.group_index_, name_.c_str(), duration_.seconds());
+                    "Prepare %s:%s (duration:%7.3f sec.)",
+                    dispatch_.name_.c_str(), name_.c_str(), duration_.seconds());
 
         state_ = States::waiting;
         return Result::success();
       }
     };
 
-    std::unique_ptr<TimerInterface> factory(TimerDispatch &dispatch)
+    std::unique_ptr<ArgsInterface> factory(TimerDispatch &dispatch)
     {
-      return std::unique_ptr<TimerInterface>{std::make_unique<Machine>(dispatch)};
+      return std::unique_ptr<ArgsInterface>{std::make_unique<Machine>(dispatch)};
     }
   }
 }

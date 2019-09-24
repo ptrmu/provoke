@@ -48,7 +48,7 @@ namespace provoke
     machine_{machine}, impl_(impl), name_(std::string{machine_.name_}.append(":").append(name))
   {}
 
-  SMResult StateInterface::on_timer(rclcpp::Time now)
+  SMResult StateInterface::on_timer(const rclcpp::Time &now)
   {
     (void) now;
     return SMResult::make_result(SMResultCodes::logic_error,

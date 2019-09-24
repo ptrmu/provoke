@@ -1,5 +1,5 @@
 
-#include "base_interface.hpp"
+#include "timer_interface.hpp"
 #include "provoke_node_impl.hpp"
 #include "ros2_shared/context_macros.hpp"
 #include "timer_dispatch.hpp"
@@ -17,11 +17,11 @@ namespace provoke
 #define PK0 "[pause: {dur: 5}, pause: {duration: 3}, pause: 3, pause]"
 #define PK1 "[par: [[pause: 2], [pause: 3, pause: 4]]]"
 #define PK2 "[pause: {dur: 1}]"
-#define PK3 ""
-#define PK4 ""
+#define PK3 "[tello: [takeoff, land]]"
+#define PK4 "[ par: [[tello: [takeoff, land]], [tello: [takeoff, land]]]]"
 
 #define BASE_MACHINE_ALL_PARAMS \
-  CXT_MACRO_MEMBER(cmds_go, int, 1) /* poke list to execute */\
+  CXT_MACRO_MEMBER(cmds_go, int, 4) /* poke list to execute */\
   CXT_MACRO_MEMBER(cmds_0, std::string, PK0) /* Sequence of commands 0 */ \
   CXT_MACRO_MEMBER(cmds_1, std::string, PK1) /* Sequence of commands 1 */ \
   CXT_MACRO_MEMBER(cmds_2, std::string, PK2) /* Sequence of commands 2 */ \
@@ -34,7 +34,7 @@ namespace provoke
     // Machine class
     // ==============================================================================
 
-    class Machine : public BaseInterface
+    class Machine : public TimerInterface
     {
       enum class States
       {
@@ -56,7 +56,7 @@ namespace provoke
 
     public:
       explicit Machine(provoke::ProvokeNodeImpl &impl)
-        : BaseInterface{"timer_pause", impl}
+        : TimerInterface{"timer_pause", impl}
       {
 #undef CXT_MACRO_MEMBER
 #define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_LOAD_PARAMETER(impl_.node_, (*this), n, t, d)
@@ -73,7 +73,7 @@ namespace provoke
 
       ~Machine() override = default;
 
-      Result on_timer_ready(rclcpp::Time now)
+      Result on_timer_ready(const rclcpp::Time &now)
       {
         // test to see if the parameter cmds_go_ is non-negative. If it
         // is then we will load and execute the indicated cmds.
@@ -167,9 +167,9 @@ namespace provoke
         result = impl_.timer_dispatch_->on_timer(now);
         if (!result.succeeded()) {
           if (!result.concluded())
-          RCLCPP_ERROR(impl_.node_.get_logger(),
-                       "First on_timer() failed for cmds_%d with error: %s",
-                       cmds_go_last_, result.msg().c_str());
+            RCLCPP_ERROR(impl_.node_.get_logger(),
+                         "First on_timer() failed for cmds_%d with error: %s",
+                         cmds_go_last_, result.msg().c_str());
           return Result::success();
         }
 
@@ -178,7 +178,7 @@ namespace provoke
         return Result::success();
       }
 
-      Result on_timer_running(rclcpp::Time now)
+      Result on_timer_running(const rclcpp::Time &now)
       {
         // Dispatch the on_timer call.
         auto result = impl_.timer_dispatch_->on_timer(now);
@@ -200,12 +200,12 @@ namespace provoke
         }
 
         RCLCPP_INFO(impl_.node_.get_logger(),
-                     "cmds_%d concluded successfully",
-                     cmds_go_last_);
+                    "cmds_%d concluded successfully",
+                    cmds_go_last_);
         return Result::failure();
       }
 
-      Result on_timer(rclcpp::Time now) override
+      Result on_timer(const rclcpp::Time &now) override
       {
         switch (state_) {
           case States::ready:
@@ -221,9 +221,9 @@ namespace provoke
       }
     };
 
-    std::unique_ptr<BaseInterface> factory(ProvokeNodeImpl &impl)
+    std::unique_ptr<TimerInterface> factory(ProvokeNodeImpl &impl)
     {
-      return std::unique_ptr<BaseInterface>{std::make_unique<Machine>(impl)};
+      return std::unique_ptr<TimerInterface>{std::make_unique<Machine>(impl)};
     }
   }
 }

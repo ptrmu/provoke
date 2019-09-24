@@ -17,7 +17,7 @@ namespace provoke
     //      and this machine gets destroyed. We have to ensure that the static timer_dispatch
     //      objects get cleaned up when this one gets cleaned up.
 
-    class Machine : public TimerInterface
+    class Machine : public ArgsInterface
     {
       TimerDispatch &dispatch_;
 
@@ -25,7 +25,7 @@ namespace provoke
 
     public:
       explicit Machine(TimerDispatch &dispatch)
-        : TimerInterface{"timer_machine_par", dispatch.impl_}, dispatch_{dispatch}
+        : ArgsInterface{"timer_machine_par", dispatch.impl_}, dispatch_{dispatch}
       {}
 
       ~Machine()
@@ -47,7 +47,7 @@ namespace provoke
         par_dispatches_.clear();
       }
 
-      Result on_timer(rclcpp::Time now) override
+      Result on_timer(const rclcpp::Time &now) override
       {
         // return concluded if all of the threads are concluded
         int active = 0;
@@ -127,8 +127,8 @@ namespace provoke
         }
 
         RCLCPP_INFO(impl_.node_.get_logger(),
-                    "Prepare %d sm:%s",
-                    dispatch_.group_index_, name_.c_str());
+                    "Prepare %s:%s",
+                    dispatch_.name_.c_str(), name_.c_str());
 
         // Walk through the available dispatches in impl and prepare them.
         // Again an error shouldn't happen because this has been validated.
@@ -176,9 +176,9 @@ namespace provoke
       }
     };
 
-    std::unique_ptr<TimerInterface> factory(TimerDispatch &dispatch)
+    std::unique_ptr<ArgsInterface> factory(TimerDispatch &dispatch)
     {
-      return std::unique_ptr<TimerInterface>{std::make_unique<Machine>(dispatch)};
+      return std::unique_ptr<ArgsInterface>{std::make_unique<Machine>(dispatch)};
     }
   }
 }

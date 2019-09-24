@@ -54,7 +54,7 @@ namespace provoke
         return SMResult::success();
       }
 
-      SMResult on_timer(rclcpp::Time now) override
+      SMResult on_timer(const rclcpp::Time &now) override
       {
         // call on_timer for this go.
         auto cont = hub_.gos_[go_idx_]->state().on_timer(now);
@@ -87,7 +87,7 @@ namespace provoke
         StateInterface{"complete", machine, impl}, hub_{hub}
       {}
 
-      SMResult on_timer(rclcpp::Time now) override
+      SMResult on_timer(const rclcpp::Time &now) override
       {
         (void) now;
         return SMResult::conclusion();

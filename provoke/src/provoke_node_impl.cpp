@@ -2,9 +2,10 @@
 #include "provoke_node_impl.hpp"
 
 
-#include "base_interface.hpp"
+#include "timer_interface.hpp"
 #include "provoke/provoke_node.hpp"
 #include "sm_manager.hpp"
+#include "tello_dispatch.hpp"
 #include "timer_dispatch.hpp"
 
 namespace provoke
@@ -16,8 +17,9 @@ namespace provoke
 
   ProvokeNodeImpl::ProvokeNodeImpl(rclcpp::Node &node) :
     node_{node},
-    timer_dispatch_{std::make_unique<TimerDispatch>(*this, 0)},
+    timer_dispatch_{},
     timer_dispatches_{},
+    tello_dispatches_{},
     sm_manager_{sm_manager_factory(*this)},
     base_machine_{base_machine::factory(*this)}
   {
@@ -26,9 +28,12 @@ namespace provoke
     // Create a bunch of timer_dispatches for use by the par machine.
     // Give each its own identifier for logging.
     for (int i = 0; i < 4; i += 1) {
-      timer_dispatches_.emplace_back(std::make_unique<TimerDispatch>(*this, i + 1));
+      tello_dispatches_.emplace_back(std::make_unique<TelloDispatch>(*this, i));
+      timer_dispatches_.emplace_back(std::make_unique<TimerDispatch>(*this, i + 1, *tello_dispatches_[i]));
     }
 
+    // Create the base timer dispatch
+    timer_dispatch_ = std::make_unique<TimerDispatch>(*this, 0, *tello_dispatches_[0]);
 
     timer_ = node_.create_wall_timer(
       std::chrono::milliseconds{timer_interval_ms},

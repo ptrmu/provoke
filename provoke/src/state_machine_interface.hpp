@@ -77,7 +77,7 @@ namespace provoke
 
     virtual ~StateInterface() = default;
 
-    virtual SMResult on_timer(rclcpp::Time now);
+    virtual SMResult on_timer(const rclcpp::Time &now);
 
     virtual SMResult on_tello_response(tello_msgs::msg::TelloResponse *msg);
 

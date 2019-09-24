@@ -36,7 +36,7 @@ namespace provoke
 
       SMResult set_ready(rclcpp::Duration timeout);
 
-      SMResult set_waiting(rclcpp::Time timeout_time);
+      SMResult set_waiting(const rclcpp::Time timeout_time);
     };
 
     // ==============================================================================
@@ -59,7 +59,7 @@ namespace provoke
         return SMResult::success();
       }
 
-      SMResult on_timer(rclcpp::Time now) override
+      SMResult on_timer(const rclcpp::Time &now) override
       {
         // make the async client call.
         auto timeout_time = now + timeout_;
@@ -84,7 +84,7 @@ namespace provoke
         StateInterface{"waiting", machine, impl}, hub_{hub}
       {}
 
-      SMResult prepare(rclcpp::Time timeout_time)
+      SMResult prepare(const rclcpp::Time timeout_time)
       {
         timeout_time_ = timeout_time;
 
@@ -99,7 +99,7 @@ namespace provoke
         return SMResult::success();
       }
 
-      SMResult on_timer(rclcpp::Time now) override;
+      SMResult on_timer(const rclcpp::Time &now) override;
 
       SMResult on_tello_response(tello_msgs::msg::TelloResponse *msg) override
       {

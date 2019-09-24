@@ -111,7 +111,7 @@ namespace provoke
 
       SMResult prepare(const std::string &poke_list);
 
-      SMResult on_timer(rclcpp::Time now) override
+      SMResult on_timer(const rclcpp::Time &now) override
       {
         return is_done(current_sm_poke_->state().on_timer(now));
       }
@@ -142,7 +142,7 @@ namespace provoke
         return SMResult::success();
       }
 
-      SMResult on_timer(rclcpp::Time now) override
+      SMResult on_timer(const rclcpp::Time &now) override
       {
         (void) now;
 

@@ -31,7 +31,7 @@ namespace provoke
 
       SMResult set_ready();
 
-      SMResult set_waiting(rclcpp::Time end_time, rclcpp::Time next_msg_time, rclcpp::Duration inter_msg_duration);
+      SMResult set_waiting(const rclcpp::Time end_time, rclcpp::Time next_msg_time, rclcpp::Duration inter_msg_duration);
 
       void send_go();
     };
@@ -64,7 +64,7 @@ namespace provoke
         return SMResult::success();
       }
 
-      SMResult on_timer(rclcpp::Time now) override
+      SMResult on_timer(const rclcpp::Time &now) override
       {
         hub_.send_go();
 
@@ -94,7 +94,7 @@ namespace provoke
         StateInterface{"waiting", machine, impl}, hub_{hub}
       {}
 
-      SMResult prepare(rclcpp::Time end_time, rclcpp::Time next_msg_time, rclcpp::Duration inter_msg_duration)
+      SMResult prepare(const rclcpp::Time end_time, rclcpp::Time next_msg_time, rclcpp::Duration inter_msg_duration)
       {
         end_time_ = end_time;
         next_msg_time_ = next_msg_time;
@@ -102,7 +102,7 @@ namespace provoke
         return SMResult::success();
       }
 
-      SMResult on_timer(rclcpp::Time now) override
+      SMResult on_timer(const rclcpp::Time &now) override
       {
         if (now >= end_time_) {
           return SMResult::conclusion();

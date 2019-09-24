@@ -9,7 +9,7 @@ namespace provoke
 
   Result YamlArgs::get_seq(std::unique_ptr<YamlSeq> &seq)
   {
-    seq.release();
+    seq.reset();
 
     // Make sure this node is a sequence
     if (!yaml_node_.IsSequence()) {
@@ -110,7 +110,7 @@ namespace provoke
 
   Result YamlSeq::get_args(std::unique_ptr<YamlArgs> &args)
   {
-    args.release();
+    args.reset();
     std::string cmd;
     YAML::Node args_node;
     auto result = get_cmd_args(cmd, args_node);
@@ -135,7 +135,7 @@ namespace provoke
 //    return Result::success();
 //  }
 //
-//  Result YamlArgs::validate_cmd_seq(std::function<std::unique_ptr<TimerInterface>(const std::string &)> get_machine)
+//  Result YamlArgs::validate_cmd_seq(std::function<std::unique_ptr<ArgsInterface>(const std::string &)> get_machine)
 //  {
 //    YAML::Node::const_iterator it;
 //    YAML::Node::const_iterator end;
@@ -190,7 +190,7 @@ namespace provoke
 //
 //  }
 //
-//  Result parse_seq_prepare(TimerInterface &(*get_machine)(const char *cmd))
+//  Result parse_seq_prepare(ArgsInterface &(*get_machine)(const char *cmd))
 //  {
 //    (void) get_machine;
 //    return Result::failure();
