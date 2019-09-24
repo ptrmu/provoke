@@ -23,8 +23,6 @@ namespace provoke
 
     std::unique_ptr<TimerInterface> new_machine(const std::string &cmd);
 
-    void set_concluded(void);
-
     Result prepare_cmd_from_seq(void);
 
     Result on_timer_concluded(rclcpp::Time now);
@@ -43,6 +41,8 @@ namespace provoke
     Result validate_args(YamlArgs &args) override;
 
     Result prepare_from_args(YamlArgs &args) override;
+
+    void set_concluded(void);
   };
 
   namespace timer_machine_pause

@@ -100,8 +100,8 @@ namespace provoke
         }
 
         RCLCPP_INFO(impl_.node_.get_logger(),
-                    "Prepare sm:%s (duration:%7.3f sec.)",
-                    name_.c_str(), duration_.seconds());
+                    "Prepare %d sm:%s (duration:%7.3f sec.)",
+                    dispatch_.group_index_, name_.c_str(), duration_.seconds());
 
         state_ = States::waiting;
         return Result::success();

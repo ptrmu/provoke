@@ -17,14 +17,16 @@ namespace provoke
   ProvokeNodeImpl::ProvokeNodeImpl(rclcpp::Node &node) :
     node_{node},
     timer_dispatch_{std::make_unique<TimerDispatch>(*this, 0)},
-    timer_dispatchs_{},
+    timer_dispatches_{},
     sm_manager_{sm_manager_factory(*this)},
     base_machine_{base_machine::factory(*this)}
   {
     sm_manager_->hub_.sm_prepare();
 
+    // Create a bunch of timer_dispatches for use by the par machine.
+    // Give each its own identifier for logging.
     for (int i = 0; i < 4; i += 1) {
-      timer_dispatchs_.emplace_back(std::make_unique<TimerDispatch>(*this, i));
+      timer_dispatches_.emplace_back(std::make_unique<TimerDispatch>(*this, i + 1));
     }
 
 
