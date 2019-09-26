@@ -26,7 +26,7 @@ namespace provoke
 
     virtual Result validate_args(YamlArgs &args);
 
-    virtual Result prepare_from_args(YamlArgs &args);
+    virtual Result prepare_from_args(const rclcpp::Time &now, YamlArgs &args);
   };
 }
 

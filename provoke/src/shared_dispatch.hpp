@@ -23,7 +23,7 @@ namespace provoke
 
     std::unique_ptr<YamlSeq> running_seq_{};
 
-    Result prepare_cmd_from_args(void)
+    Result prepare_cmd_from_args(const rclcpp::Time &now)
     {
       // If we are at the end of the sequence, then return conclusion
       if (running_seq_->done()) {
@@ -62,7 +62,7 @@ namespace provoke
       }
 
       // Ask the machine to validate the args
-      result = running_machine_->prepare_from_args(*cmd_args);
+      result = running_machine_->prepare_from_args(now, *cmd_args);
 
       // Return any error
       if (!result.succeeded()) {
@@ -74,13 +74,13 @@ namespace provoke
       return Result::success();
     }
 
-    Result prepare_cmd_from_seq(void)
+    Result prepare_cmd_from_seq(const rclcpp::Time &now)
     {
       // must be in running state
       assert(state_ == States::running);
 
       // Prepare the machine that the seq points to. Also advance the seq.
-      auto result = prepare_cmd_from_args();
+      auto result = prepare_cmd_from_args(now);
 
       // If there was an error, move to concluded state
       if (!result.succeeded()) {
@@ -115,7 +115,7 @@ namespace provoke
       }
 
       // Prepare the next machine in the argument sequence.
-      return prepare_cmd_from_seq();
+      return prepare_cmd_from_seq(now);
     }
 
   protected:
@@ -212,7 +212,7 @@ namespace provoke
       return Result::success();
     }
 
-    Result prepare_from_args(YamlArgs &args) override
+    Result prepare_from_args(const rclcpp::Time &now, YamlArgs &args) override
     {
       // Get the sequence from the args
       auto result = args.get_seq(running_seq_);
@@ -226,7 +226,7 @@ namespace provoke
       state_ = States::running;
 
       // Prepare this command
-      return prepare_cmd_from_seq();
+      return prepare_cmd_from_seq(now);
     }
   };
 

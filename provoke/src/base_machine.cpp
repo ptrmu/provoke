@@ -153,7 +153,7 @@ namespace provoke
         }
 
         // Prepare for execution
-        result = impl_.timer_dispatch_->prepare_from_args(*yaml_args);
+        result = impl_.timer_dispatch_->prepare_from_args(now, *yaml_args);
         if (!result.succeeded()) {
           RCLCPP_ERROR(impl_.node_.get_logger(),
                        "Prepare failed for cmds_%d with error: %s",

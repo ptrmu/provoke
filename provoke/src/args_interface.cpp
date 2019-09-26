@@ -13,8 +13,9 @@ namespace provoke
                                name_.c_str());
   }
 
-  Result ArgsInterface::prepare_from_args(YamlArgs &args)
+  Result ArgsInterface::prepare_from_args(const rclcpp::Time &now, YamlArgs &args)
   {
+    (void) now;
     (void) args;
     return Result::make_result(ResultCodes::logic_error,
                                "Machine:%s has not implemented 'prepare_from_args()'",

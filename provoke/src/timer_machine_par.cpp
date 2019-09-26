@@ -113,7 +113,7 @@ namespace provoke
         return Result::success();
       }
 
-      Result prepare_from_args(YamlArgs &args) override
+      Result prepare_from_args(const rclcpp::Time &now, YamlArgs &args) override
       {
         // Probably not necessary but just in case, clear out any leftover state.
         set_concluded();
@@ -141,7 +141,7 @@ namespace provoke
             }
 
             // Prepare this dispatch. If an error occurs, break out and clean up everything.
-            result = timer_dispatch->prepare_from_args(*dispatch_args);
+            result = timer_dispatch->prepare_from_args(now, *dispatch_args);
             if (!result.succeeded()) {
               break;
             }

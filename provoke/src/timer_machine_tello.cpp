@@ -33,13 +33,13 @@ namespace provoke
         return dispatch_.tello_dispatch_.validate_args(args);
       }
 
-      Result prepare_from_args(YamlArgs &args) override
+      Result prepare_from_args(const rclcpp::Time &now, YamlArgs &args) override
       {
         RCLCPP_INFO(impl_.node_.get_logger(),
                     "Prepare %s:%s",
                     dispatch_.name_.c_str(), name_.c_str());
 
-        return dispatch_.tello_dispatch_.prepare_from_args(args);
+        return dispatch_.tello_dispatch_.prepare_from_args(now, args);
       }
     };
 

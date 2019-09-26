@@ -91,8 +91,9 @@ namespace provoke
         return _validate_args(args, duration);
       }
 
-      Result prepare_from_args(YamlArgs &args) override
+      Result prepare_from_args(const rclcpp::Time &now, YamlArgs &args) override
       {
+        (void)now;
         auto result = _validate_args(args, duration_);
         if (!result.succeeded()) {
           state_ = States::concluded;

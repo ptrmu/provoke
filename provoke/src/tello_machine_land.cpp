@@ -29,8 +29,9 @@ namespace provoke
         return Result::success();
       }
 
-      Result prepare_from_args(YamlArgs &args) override
+      Result prepare_from_args(const rclcpp::Time &now, YamlArgs &args) override
       {
+        (void) now;
         (void) args;
 
         RCLCPP_INFO(impl_.node_.get_logger(),
