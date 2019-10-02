@@ -19,7 +19,7 @@ namespace provoke
     YAML::Node yaml_node_;
 
   public:
-    YamlArgs(std::shared_ptr<YamlHolder> &holder, YAML::Node yaml_node);
+    YamlArgs(std::shared_ptr<YamlHolder> &holder, const YAML::Node &yaml_node);
 
     Result get_seq(std::unique_ptr<YamlSeq> &seq);
 

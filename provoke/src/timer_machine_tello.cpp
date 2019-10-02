@@ -18,7 +18,7 @@ namespace provoke
         : ArgsInterface{"timer_machine_tello", dispatch.impl_}, dispatch_{dispatch}
       {}
 
-      ~Machine()
+      ~Machine() override
       {
         dispatch_.tello_dispatch_.set_concluded();
       };

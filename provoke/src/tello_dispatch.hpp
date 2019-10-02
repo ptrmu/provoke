@@ -4,13 +4,18 @@
 
 #include "shared_dispatch.hpp"
 #include "tello_interface.hpp"
+#include "tello_msgs/srv/tello_action.hpp"
 
 namespace provoke
 {
 
   class TelloDispatch : public SharedDispatch<TelloInterface>
   {
+    rclcpp::Subscription<tello_msgs::msg::TelloResponse>::SharedPtr tello_response_sub_;
+
   public:
+    rclcpp::Client<tello_msgs::srv::TelloAction>::SharedPtr action_client_;
+
     TelloDispatch(ProvokeNodeImpl &impl, int inst_index);
 
     ~TelloDispatch() override;

@@ -1,7 +1,7 @@
 
 #include "result.hpp"
 
-#include <stdarg.h> // for va_list, va_start
+#include <cstdarg> // for va_list, va_start
 
 namespace provoke
 {

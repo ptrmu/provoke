@@ -42,6 +42,7 @@ namespace provoke
         //sm_manager_->state().on_timer(node_.now());
         base_machine_->on_timer(node_.now());
       });
+    (void) timer_;
   }
 
   ProvokeNodeImpl::~ProvokeNodeImpl() = default;
@@ -55,7 +56,7 @@ namespace provoke
     ProvokeNodeImpl impl_;
 
   public:
-    ProvokeNode(rclcpp::NodeOptions &options)
+    explicit ProvokeNode(rclcpp::NodeOptions &options)
       : Node("provoke_node", options), impl_(*this)
     {
       RCLCPP_INFO(get_logger(), "provoke_node ready");

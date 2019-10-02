@@ -119,18 +119,17 @@ namespace provoke
     }
 
   protected:
-    const int inst_index_;
     NewMachineFunc new_machine_{};
     std::unique_ptr<TMachineInterface> running_machine_{};
 
   public:
     SharedDispatch(std::string name, ProvokeNodeImpl &impl, int inst_index) :
-      ArgsInterface(std::string{name}.append("_").append(std::to_string(inst_index)), impl), inst_index_{inst_index}
+      ArgsInterface(name.append("_").append(std::to_string(inst_index)), impl)
     {}
 
-    ~SharedDispatch() = default;
+    ~SharedDispatch() override = default;
 
-    void set_concluded(void)
+    void set_concluded()
     {
       if (running_seq_) {
         running_seq_.reset();
@@ -141,7 +140,7 @@ namespace provoke
       state_ = States::concluded;
     }
 
-    Result on_timer(const rclcpp::Time &now)
+    Result on_timer(const rclcpp::Time &now) override
     {
       switch (state_) {
         case States::concluded:
@@ -154,7 +153,7 @@ namespace provoke
       }
     }
 
-    Result validate_args(YamlArgs &args)
+    Result validate_args(YamlArgs &args) override
     {
       // Get a sequence from these args.
       std::unique_ptr<YamlSeq> seq;
@@ -229,7 +228,5 @@ namespace provoke
       return prepare_cmd_from_seq(now);
     }
   };
-
-
 }
 #endif //SHARED_DISPATCH_HPP

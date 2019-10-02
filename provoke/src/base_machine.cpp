@@ -21,7 +21,7 @@ namespace provoke
 #define PK4 "[ par: [[tello: [takeoff, land]], [tello: [takeoff, land]]]]"
 
 #define BASE_MACHINE_ALL_PARAMS \
-  CXT_MACRO_MEMBER(cmds_go, int, 4) /* poke list to execute */\
+  CXT_MACRO_MEMBER(cmds_go, int, 3) /* poke list to execute */\
   CXT_MACRO_MEMBER(cmds_0, std::string, PK0) /* Sequence of commands 0 */ \
   CXT_MACRO_MEMBER(cmds_1, std::string, PK1) /* Sequence of commands 1 */ \
   CXT_MACRO_MEMBER(cmds_2, std::string, PK2) /* Sequence of commands 2 */ \
@@ -48,6 +48,7 @@ namespace provoke
 
       void validate_parameters()
       {
+        (void) this; // silence static warning
       }
 
 #undef CXT_MACRO_MEMBER
@@ -121,7 +122,7 @@ namespace provoke
 
         // Prepare to parse the command list.
         auto running_yaml_holder = std::make_shared<YamlHolder>();
-        auto result = running_yaml_holder->from_string(cmds.c_str());
+        auto result = running_yaml_holder->from_string(cmds);
 
         // If the initial parse failed, report this and exit
         if (!result.succeeded()) {
@@ -185,7 +186,7 @@ namespace provoke
 
         // If success, then just return.
         if (result.succeeded()) {
-          return result.success();
+          return Result::success();
         }
 
         // Transition to the ready state if concluded or error

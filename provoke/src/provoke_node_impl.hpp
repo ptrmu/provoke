@@ -29,7 +29,7 @@ namespace provoke
     rclcpp::TimerBase::SharedPtr timer_{};
 
   public:
-    ProvokeNodeImpl(rclcpp::Node &node);
+    explicit ProvokeNodeImpl(rclcpp::Node &node);
 
     ~ProvokeNodeImpl();
   };

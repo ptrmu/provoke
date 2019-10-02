@@ -16,10 +16,9 @@ namespace provoke
 
     TelloInterface() = delete;
 
-    virtual ~TelloInterface() = default;
+    virtual ~TelloInterface() override = default;
 
-
-    virtual Result on_tello_response(tello_msgs::msg::TelloResponse *msg);
+    virtual Result on_tello_response(tello_msgs::msg::TelloResponse::SharedPtr &msg);
   };
 }
 

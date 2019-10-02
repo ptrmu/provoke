@@ -53,13 +53,15 @@ add_executable(${PROJECT_NAME}
   src/timer_machine_par.cpp
   src/timer_machine_pause.cpp
   src/timer_machine_tello.cpp
-  src/dispatch_interface.cpp
   src/timer_dispatch.cpp
   src/timer_interface.cpp
   src/base_machine.cpp
   src/tello_interface.cpp
   src/tello_dispatch.cpp
-  src/tello_machine_takeoff.cpp src/tello_machine_land.cpp)
+  src/tello_machine_const_action.cpp
+  src/tello_machine_const_action.cpp
+  src/tello_machine_action.cpp
+  )
 
 ament_target_dependencies(${PROJECT_NAME}
   geometry_msgs

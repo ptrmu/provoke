@@ -3,7 +3,7 @@
 
 namespace provoke
 {
-  Result TelloInterface::on_tello_response(tello_msgs::msg::TelloResponse *msg)
+  Result TelloInterface::on_tello_response(tello_msgs::msg::TelloResponse::SharedPtr &msg)
   {
     auto msg_str = msg->str;
     (void) msg;

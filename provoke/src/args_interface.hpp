@@ -22,7 +22,7 @@ namespace provoke
 
     ArgsInterface() = delete;
 
-    virtual ~ArgsInterface() = default;
+    ~ArgsInterface() override = default;
 
     virtual Result validate_args(YamlArgs &args);
 

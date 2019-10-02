@@ -3,8 +3,8 @@
 
 namespace provoke
 {
-  YamlArgs::YamlArgs(std::shared_ptr<YamlHolder> &holder, YAML::Node yaml_node) :
-    holder_{holder}, yaml_node_{std::move(yaml_node)}
+  YamlArgs::YamlArgs(std::shared_ptr<YamlHolder> &holder, const YAML::Node &yaml_node) :
+    holder_{holder}, yaml_node_{yaml_node}
   {}
 
   Result YamlArgs::get_seq(std::unique_ptr<YamlSeq> &seq)

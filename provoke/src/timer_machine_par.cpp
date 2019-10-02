@@ -28,7 +28,7 @@ namespace provoke
         : ArgsInterface{"timer_machine_par", dispatch.impl_}, dispatch_{dispatch}
       {}
 
-      ~Machine()
+      ~Machine() override
       {
         // Clean out any of the par_dispatches that haven't been cleaned up.
         // This could happen when an error occurs outside of this module and
