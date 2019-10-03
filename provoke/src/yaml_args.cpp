@@ -24,12 +24,13 @@ namespace provoke
   Result YamlArgs::get_arg_str(const char *key, std::string &arg_str)
   {
     arg_str.clear();
-    if (*key && yaml_node_.IsMap()) {
-      auto value = yaml_node_[key];
-      if (value.IsScalar()) {
-        arg_str = value.Scalar();
+    if (*key) {
+      if (yaml_node_.IsMap()) {
+        auto value = yaml_node_[key];
+        if (value.IsScalar()) {
+          arg_str = value.Scalar();
+        }
       }
-
     } else if (yaml_node_.IsScalar()) {
       arg_str = yaml_node_.Scalar();
     }

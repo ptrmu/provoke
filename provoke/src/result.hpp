@@ -28,8 +28,8 @@ namespace provoke
     {
     }
 
-    Result(ResultCodes code, const std::string &msg) :
-      code_{code}, msg_{msg}
+    Result(ResultCodes code, std::string msg) :
+      code_{code}, msg_{std::move(msg)}
     {}
 
     static Result make_result(ResultCodes code, std::string fmt_str, ...);

@@ -14,14 +14,14 @@ namespace provoke
     // Parameters
     // ==============================================================================
 
-#define PK0 "[pause: {dur: 5}, pause: {duration: 3}, pause: 3, pause]"
+#define PK0 "[pause: {dur: 1}, tello: [land]]"
 #define PK1 "[par: [[pause: 2], [pause: 3, pause: 4]]]"
-#define PK2 "[pause: {dur: 1}]"
-#define PK3 "[tello: [takeoff, land]]"
-#define PK4 "[ par: [[tello: [takeoff, land]], [tello: [takeoff, land]]]]"
+#define PK2 "[pause: 3, tello: [takeoff, send: mon, send: go 50 0 0 50 m3, land]]"
+#define PK3 "[pause: 3, tello: [takeoff, send: forward 50, send: left 50, send: right 100, send: left 50, land]]"
+#define PK4 "[pause: 3, tello: [takeoff, send: go 50 0 0 50, send: go 0 50 0 50, send: go 0 -100 0 50, send: go 0 50 0 50, land]]"
 
 #define BASE_MACHINE_ALL_PARAMS \
-  CXT_MACRO_MEMBER(cmds_go, int, 3) /* poke list to execute */\
+  CXT_MACRO_MEMBER(cmds_go, int, 2) /* poke list to execute */\
   CXT_MACRO_MEMBER(cmds_0, std::string, PK0) /* Sequence of commands 0 */ \
   CXT_MACRO_MEMBER(cmds_1, std::string, PK1) /* Sequence of commands 1 */ \
   CXT_MACRO_MEMBER(cmds_2, std::string, PK2) /* Sequence of commands 2 */ \
@@ -84,10 +84,11 @@ namespace provoke
 
         // Pick one of the lists of commands to execute. Make a copy
         // of the string because it needs to stay around while it is being
-        // executed. The parameter itself could change during excution.
+        // executed. The parameter itself could change during execution.
         std::string cmds;
         cmds_go_last_ = cmds_go_;
         switch (cmds_go_) {
+          default:
           case 0:
             cmds = cmds_0_;
             break;
@@ -208,17 +209,16 @@ namespace provoke
 
       Result on_timer(const rclcpp::Time &now) override
       {
+        Result result{};
         switch (state_) {
           case States::ready:
-            return on_timer_ready(now);
-
+            result = on_timer_ready(now);
+            break;
           case States::running:
-            return on_timer_running(now);
-
-          default:
-            state_ = States::ready;
-            return Result::success();
+            result = on_timer_running(now);
+            break;
         }
+        return result;
       }
     };
 

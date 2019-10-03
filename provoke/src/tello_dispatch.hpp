@@ -30,5 +30,10 @@ namespace provoke
   {
     std::unique_ptr<TelloInterface> factory(TelloDispatch &dispatch);
   }
+
+  namespace tello_machine_send_action
+  {
+    std::unique_ptr<TelloInterface> factory(TelloDispatch &dispatch);
+  }
 }
 #endif //TELLO_DISPATCH_HPP

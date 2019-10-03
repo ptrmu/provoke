@@ -142,15 +142,16 @@ namespace provoke
 
     Result on_timer(const rclcpp::Time &now) override
     {
+      Result result{};
       switch (state_) {
         case States::concluded:
-          return on_timer_concluded(now);
+          result = on_timer_concluded(now);
+          break;
         case States::running:
-          return on_timer_running(now);
-        default:
-          state_ = States::concluded;
-          return Result::conclusion();
+          result = on_timer_running(now);
+          break;
       }
+      return result;
     }
 
     Result validate_args(YamlArgs &args) override

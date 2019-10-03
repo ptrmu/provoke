@@ -35,6 +35,8 @@ namespace provoke
         return tello_machine_takeoff::factory(*this);
       } else if (cmd =="land") {
         return tello_machine_land::factory(*this);
+      } else if (cmd =="send") {
+        return tello_machine_send_action::factory(*this);
       }
       return std::unique_ptr<TelloInterface>{};
     };

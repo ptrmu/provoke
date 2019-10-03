@@ -42,7 +42,7 @@ namespace provoke
 
           args.get_arg_str("", duration_str);
           if (duration_str.empty()) {
-            duration = rclcpp::Duration(std::chrono::milliseconds(static_cast<int>(1 * 1000)));
+            duration = rclcpp::Duration(std::chrono::milliseconds(static_cast<int>(1.0 * 1000)));
             return Result::success();
           }
         }

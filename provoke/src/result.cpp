@@ -24,14 +24,15 @@ namespace provoke
         break;
       }
 
+      auto final_n_ = static_cast<size_t>(final_n);
       // If the buffer sufficient, resize it and finish.
-      if (final_n < static_cast<int>(str_len)) {
-        str.resize(final_n + 1); // don't truncate the trailing null!
+      if (final_n_ < str_len) {
+        str.resize(final_n_ + 1); // don't truncate the trailing null!
         break;
       }
 
       // The buffer was not large enough. So resize it.
-      str_len = final_n + 1;
+      str_len = final_n_ + 1;
 
       va_end(ap);
     } while (true);

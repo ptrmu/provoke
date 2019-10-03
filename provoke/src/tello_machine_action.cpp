@@ -61,9 +61,9 @@ namespace provoke
         action_future_.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
 
       auto response = action_future_.get();
-//      RCLCPP_INFO(impl_.node_.get_logger(),
-//                  "checking on future - rc:%d",
-//                  response->rc);
+      RCLCPP_INFO(impl_.node_.get_logger(),
+                  "future complete - rc:%d",
+                  response->rc);
 
       if (response->rc == response->ERROR_BUSY) {
         return Result::make_result(ResultCodes::failure,
@@ -121,7 +121,9 @@ namespace provoke
 
   Result TelloMachineAction::on_tello_response(tello_msgs::msg::TelloResponse::SharedPtr &msg)
   {
-    tello_response_ = msg;
+    if (!concluded_) {
+      tello_response_ = msg;
+    }
     return Result::success();
   }
 }
