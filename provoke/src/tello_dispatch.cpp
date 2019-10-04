@@ -43,4 +43,8 @@ namespace provoke
   }
 
   TelloDispatch::~TelloDispatch() = default;
+
+  bool TelloDispatch::is_action_client_ready() {
+    return action_client_->wait_for_service(std::chrono::seconds(0));
+  }
 }

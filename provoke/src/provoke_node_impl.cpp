@@ -4,7 +4,6 @@
 
 #include "timer_interface.hpp"
 #include "provoke/provoke_node.hpp"
-#include "sm_manager.hpp"
 #include "tello_dispatch.hpp"
 #include "timer_dispatch.hpp"
 
@@ -20,11 +19,8 @@ namespace provoke
     timer_dispatch_{},
     timer_dispatches_{},
     tello_dispatches_{},
-    sm_manager_{sm_manager_factory(*this)},
     base_machine_{base_machine::factory(*this)}
   {
-    sm_manager_->hub_.sm_prepare();
-
     // Create a bunch of timer_dispatches for use by the par machine.
     // Give each its own identifier for logging.
     for (int i = 0; i < 4; i += 1) {
@@ -39,9 +35,21 @@ namespace provoke
       std::chrono::milliseconds{timer_interval_ms},
       [this]() -> void
       {
-        //sm_manager_->state().on_timer(node_.now());
-        base_machine_->on_timer(node_.now());
+        // if the TelloDispatch objects aren't inited, then don't dispatch.
+        if (inited_) {
+          base_machine_->on_timer(node_.now());
+          return;
+        }
+
+        // Set the init flag if all the telloDispatch classed are ready.
+        for (auto &tello_dispatch : tello_dispatches_) {
+          if (!tello_dispatch->is_action_client_ready()) {
+            return;
+          }
+        }
+        inited_ = true;
       });
+
     (void) timer_;
   }
 

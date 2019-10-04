@@ -4,6 +4,7 @@
 
 #include "args_interface.hpp"
 #include "provoke_node_impl.hpp"
+#include "rclcpp/rclcpp.hpp"
 #include "yaml_args.hpp"
 
 namespace provoke

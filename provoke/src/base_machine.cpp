@@ -14,9 +14,9 @@ namespace provoke
     // Parameters
     // ==============================================================================
 
-#define PK0 "[pause: {dur: 1}, tello: [land]]"
+#define PK0 "[tello: [land]]"
 #define PK1 "[par: [[pause: 2], [pause: 3, pause: 4]]]"
-#define PK2 "[pause: 3, tello: [takeoff, send: mon, send: go 50 0 0 50 m3, land]]"
+#define PK2 "[tello: [takeoff, send: go 50 50 100 50, send: go 0 -100 0 50, send: go 0 50 -100 50, send: go 0 50 100 50, send: go 0 -100 0 50, send: go 0 50 -100 50, land]]"
 #define PK3 "[pause: 3, tello: [takeoff, send: forward 50, send: left 50, send: right 100, send: left 50, land]]"
 #define PK4 "[pause: 3, tello: [takeoff, send: go 50 0 0 50, send: go 0 50 0 50, send: go 0 -100 0 50, send: go 0 50 0 50, land]]"
 

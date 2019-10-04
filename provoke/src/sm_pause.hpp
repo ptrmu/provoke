@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "provoke_node_impl.hpp"
+#include "rclcpp/rclcpp.hpp"
 #include "state_machine_interface.hpp"
 
 namespace provoke

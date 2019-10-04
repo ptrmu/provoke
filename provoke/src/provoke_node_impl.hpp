@@ -6,6 +6,13 @@
 #include "state_machine_interface.hpp"
 
 
+namespace rclcpp
+{
+  class Node;
+
+  class TimerBase;
+}
+
 namespace provoke
 {
   class TimerDispatch;
@@ -18,15 +25,15 @@ namespace provoke
   {
   public:
     rclcpp::Node &node_;
+    bool inited_{false};
     const long timer_interval_ms = 10;
     std::unique_ptr<TimerDispatch> timer_dispatch_;
     std::vector<std::unique_ptr<TimerDispatch>> timer_dispatches_;
     std::vector<std::unique_ptr<TelloDispatch>> tello_dispatches_;
 
   private:
-    std::unique_ptr<sm_manager::Machine> sm_manager_;
     std::unique_ptr<TimerInterface> base_machine_;
-    rclcpp::TimerBase::SharedPtr timer_{};
+    std::shared_ptr<rclcpp::TimerBase> timer_{};
 
   public:
     explicit ProvokeNodeImpl(rclcpp::Node &node);

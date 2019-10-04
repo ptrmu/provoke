@@ -5,9 +5,12 @@
 #include <memory>
 #include <map>
 
-#include "rclcpp/rclcpp.hpp"
 #include "tello_msgs/msg/tello_response.hpp"
-#include "tf2/LinearMath/Vector3.h"
+
+namespace rclcpp
+{
+  class Time;
+}
 
 namespace provoke
 {
