@@ -17,11 +17,9 @@ namespace provoke
   {
     using ActionFuture = std::shared_future<tello_msgs::srv::TelloAction::Response::SharedPtr>;
 
-    bool concluded_{true};
+    Result pending_result_{Result::conclusion()};
     std::string action_str_{};
     rclcpp::Time timeout_time_{};
-    ActionFuture action_future_{};
-    tello_msgs::msg::TelloResponse::SharedPtr tello_response_{};
 
   protected:
     TelloDispatch &dispatch_;
@@ -37,7 +35,9 @@ namespace provoke
 
     Result on_timer(const rclcpp::Time &now) override;
 
-    Result on_tello_response(tello_msgs::msg::TelloResponse::SharedPtr &msg) override;
+    Result on_tello_response(const tello_msgs::msg::TelloResponse &response) override;
+
+    Result on_tello_action_response(const tello_msgs::srv::TelloAction_Response &action_response) override;
   };
 }
 

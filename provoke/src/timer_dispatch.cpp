@@ -2,7 +2,6 @@
 #include "timer_dispatch.hpp"
 
 #include "provoke_node_impl.hpp"
-#include "yaml_args.hpp"
 
 namespace provoke
 {

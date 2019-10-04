@@ -11,17 +11,21 @@ namespace provoke
 
   class TelloDispatch : public SharedDispatch<TelloInterface>
   {
-//    std::shared_future<tello_msgs::srv::TelloAction::Response::SharedPtr> action_future_{};
+    using ActionFuture = std::shared_future<tello_msgs::srv::TelloAction::Response::SharedPtr>;
+
+    rclcpp::Client<tello_msgs::srv::TelloAction>::SharedPtr action_client_;
     rclcpp::Subscription<tello_msgs::msg::TelloResponse>::SharedPtr tello_response_sub_;
 
-  public:
-    rclcpp::Client<tello_msgs::srv::TelloAction>::SharedPtr action_client_;
+    ActionFuture action_future_{};
 
+  public:
     TelloDispatch(ProvokeNodeImpl &impl, int inst_index);
 
     ~TelloDispatch() override;
 
     bool is_action_client_ready();
+
+    void send_tello_action_request(const std::string &action_str);
   };
 
   namespace tello_machine_takeoff
