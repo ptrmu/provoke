@@ -3,10 +3,67 @@
 #include "provoke_node_impl.hpp"
 #include "ros2_shared/context_macros.hpp"
 #include "timer_dispatch.hpp"
+#include "tf2/LinearMath/Scalar.h"
 #include "yaml_args.hpp"
 
 namespace provoke
 {
+  class SequenceGenerator
+  {
+    static std::vector<std::tuple<double, double>> generate_rotation(int revolutions, int stops_per_rev)
+    {
+      std::vector<std::tuple<double, double>> waypoints_2d;
+
+      double angle_increment = TF2SIMD_2_PI / stops_per_rev;
+      double angle = 0.0;
+
+      waypoints_2d.emplace_back(std::tuple<double, double>{1.0, 0.});
+
+      for (int r1 = 0; r1 < revolutions; r1 += 1) {
+        for (int r2 = 0; r2 < stops_per_rev; r2 += 1) {
+          auto back_angle = angle + angle_increment / 2 - TF2SIMD_PI;
+          waypoints_2d.emplace_back(std::tuple<double, double>{std::cos(back_angle), std::sin(back_angle)});
+          angle += angle_increment;
+          waypoints_2d.emplace_back(std::tuple<double, double>{std::cos(angle), std::sin(angle)});
+        }
+      }
+
+      return waypoints_2d;
+    }
+
+    static std::string generate_rot_oscillate_1(int radius, int revolutions, int stops_per_rev)
+    {
+      std::string go_commands{"[tello: [takeoff, send: go 50 0 50 50, "};
+
+      auto rotations = generate_rotation(revolutions, stops_per_rev);
+      double p0{0.0};
+      double p1{0.0};
+      for (const auto &r : rotations) {
+        auto n0 = std::get<0>(r);
+        auto n1 = std::get<1>(r);
+        auto d0 = n0 - p0;
+        auto d1 = n1 - p1;
+        p0 = n0;
+        p1 = n1;
+        std::string s0{std::to_string(static_cast<int>(d0 * radius))};
+        std::string s1{std::to_string(static_cast<int>(d1 * radius))};
+        go_commands.append("send: go 0 ").append(s0).append(" ").append(s1).append(" 50, ");
+      }
+
+      go_commands.append("land]]");
+      return go_commands;
+    }
+
+  public:
+    static std::string generate(const std::string &cmds_generate)
+    {
+      if (cmds_generate == "rot_oscillate_1") {
+        return generate_rot_oscillate_1(50, 2, 4);
+      }
+      return std::string{};
+    }
+  };
+
   namespace base_machine
   {
 
@@ -22,6 +79,7 @@ namespace provoke
 
 #define BASE_MACHINE_ALL_PARAMS \
   CXT_MACRO_MEMBER(cmds_go, int, 2) /* poke list to execute */\
+  CXT_MACRO_MEMBER(cmds_generate, std::string, "rot_oscillate_1") /* programmatically generate sequence */ \
   CXT_MACRO_MEMBER(cmds_0, std::string, PK0) /* Sequence of commands 0 */ \
   CXT_MACRO_MEMBER(cmds_1, std::string, PK1) /* Sequence of commands 1 */ \
   CXT_MACRO_MEMBER(cmds_2, std::string, PK2) /* Sequence of commands 2 */ \
@@ -74,8 +132,18 @@ namespace provoke
 
       ~Machine() override = default;
 
+//      std::string generate_sequence(const std::string &cmds_generate);
+
       Result on_timer_ready(const rclcpp::Time &now)
       {
+        // Test if we are supposed to calculate a command sequence.
+        if (!cmds_generate_.empty()) {
+          auto cmds_seq = SequenceGenerator::generate(cmds_generate_);
+          CXT_MACRO_SET_PARAMETER(impl_.node_, (*this), cmds_1, cmds_seq);
+          CXT_MACRO_SET_PARAMETER(impl_.node_, (*this), cmds_go, 1);
+          CXT_MACRO_SET_PARAMETER(impl_.node_, (*this), cmds_generate, "");
+        }
+
         // test to see if the parameter cmds_go_ is non-negative. If it
         // is then we will load and execute the indicated cmds.
         if (cmds_go_ < 0) {

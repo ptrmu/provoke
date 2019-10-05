@@ -60,9 +60,9 @@ namespace provoke
     // Now that a response has been received we are done with this action.
     set_concluded();
 
-//      RCLCPP_INFO(impl_.node_.get_logger(),
-//                  "Received tello_response - rc:%d, until timeout:%7.3f",
-//                  tello_response_->rc, (timeout_time_ - now).seconds());
+    RCLCPP_INFO(impl_.node_.get_logger(),
+                "Received tello_response - rc:%d, str:%s",
+                response.rc, response.str.c_str());
 
     // Figure out what if an error occurred.
     if (response.rc == response.OK) {
