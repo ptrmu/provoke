@@ -20,7 +20,7 @@ namespace provoke
         // Dispatch any tello_response messages that we receive.
         if (running_machine_ != nullptr) {
           auto result = running_machine_->on_tello_response(*msg);
-          if (!result.succeeded()) {
+          if (!result.succeeded() && !result.concluded()) {
             RCLCPP_ERROR(impl_.node_.get_logger(),
                          "on_tello_response() failed for machine %s with error: %s",
                          running_machine_->name_.c_str(), result.msg().c_str());
@@ -62,7 +62,7 @@ namespace provoke
           // Assume the future is ready
           auto &response = shared_future.get();
           auto result = running_machine_->on_tello_action_response(*response);
-          if (!result.succeeded()) {
+          if (!result.succeeded() && !result.concluded()) {
             RCLCPP_ERROR(impl_.node_.get_logger(),
                          "on_tello_action_response() failed for machine %s with error: %s",
                          running_machine_->name_.c_str(), result.msg().c_str());

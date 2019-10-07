@@ -26,6 +26,7 @@ namespace provoke
   public:
     rclcpp::Node &node_;
     bool inited_{false};
+    int init_try_count_{0};
     const long timer_interval_ms = 10;
     std::unique_ptr<TimerDispatch> timer_dispatch_;
     std::vector<std::unique_ptr<TimerDispatch>> timer_dispatches_;

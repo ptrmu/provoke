@@ -71,6 +71,7 @@ namespace provoke
     // Parameters
     // ==============================================================================
 
+#define ERR "[pause: 1, tello: [land]]"
 #define PK0 "[tello: [land]]"
 #define PK1 "[par: [[pause: 2], [pause: 3, pause: 4]]]"
 #define PK2 "[tello: [takeoff, send: go 50 50 100 50, send: go 0 -100 0 50, send: go 0 50 -100 50, send: go 0 50 100 50, send: go 0 -100 0 50, send: go 0 50 -100 50, land]]"
@@ -78,8 +79,9 @@ namespace provoke
 #define PK4 "[pause: 3, tello: [takeoff, send: go 50 0 0 50, send: go 0 50 0 50, send: go 0 -100 0 50, send: go 0 50 0 50, land]]"
 
 #define BASE_MACHINE_ALL_PARAMS \
-  CXT_MACRO_MEMBER(cmds_go, int, 2) /* poke list to execute */\
+  CXT_MACRO_MEMBER(cmds_go, int, -1) /* poke list to execute */\
   CXT_MACRO_MEMBER(cmds_generate, std::string, "rot_oscillate_1") /* programmatically generate sequence */ \
+  CXT_MACRO_MEMBER(cmds_err, std::string, ERR) /* Sequence of commands in respond to error */ \
   CXT_MACRO_MEMBER(cmds_0, std::string, PK0) /* Sequence of commands 0 */ \
   CXT_MACRO_MEMBER(cmds_1, std::string, PK1) /* Sequence of commands 1 */ \
   CXT_MACRO_MEMBER(cmds_2, std::string, PK2) /* Sequence of commands 2 */ \
@@ -94,15 +96,20 @@ namespace provoke
 
     class Machine : public TimerInterface
     {
+#define SOURCE_CMDS_ERR "cmds_err"
+
       enum class States
       {
-        ready = 0,
+        starting = 0,
+        ready,
         running,
+        running_error,
+        init_error,
       };
 
-      States state_{States::ready};
+      States state_{States::starting};
 
-      int cmds_go_last_{-1};
+      std::string source_{};
 
       void validate_parameters()
       {
@@ -132,29 +139,29 @@ namespace provoke
 
       ~Machine() override = default;
 
-//      std::string generate_sequence(const std::string &cmds_generate);
-
-      Result on_timer_ready(const rclcpp::Time &now)
+    private:
+      void get_cmds(std::string &source, std::string &cmds)
       {
         // Test if we are supposed to calculate a command sequence.
         if (!cmds_generate_.empty()) {
-          auto cmds_seq = SequenceGenerator::generate(cmds_generate_);
-          CXT_MACRO_SET_PARAMETER(impl_.node_, (*this), cmds_1, cmds_seq);
-          CXT_MACRO_SET_PARAMETER(impl_.node_, (*this), cmds_go, 1);
+          source = cmds_generate_;
+          cmds = SequenceGenerator::generate(cmds_generate_);
           CXT_MACRO_SET_PARAMETER(impl_.node_, (*this), cmds_generate, "");
+          return;
         }
 
         // test to see if the parameter cmds_go_ is non-negative. If it
         // is then we will load and execute the indicated cmds.
         if (cmds_go_ < 0) {
-          return Result::success();
+          source.clear();
+          cmds.clear();
+          return;
         }
 
         // Pick one of the lists of commands to execute. Make a copy
         // of the string because it needs to stay around while it is being
         // executed. The parameter itself could change during execution.
-        std::string cmds;
-        cmds_go_last_ = cmds_go_;
+        source = std::string{"cmds_"}.append(std::to_string(cmds_go_));
         switch (cmds_go_) {
           default:
           case 0:
@@ -177,70 +184,121 @@ namespace provoke
         // We have picked up this command, so reset the go parameter.
         CXT_MACRO_SET_PARAMETER(impl_.node_, (*this), cmds_go, -1);
 
-        // Error if out of range
         if (cmds.empty()) {
           RCLCPP_ERROR(impl_.node_.get_logger(),
-                       "cmds_go value of %d is out of range.",
-                       cmds_go_last_);
-          return Result::success();
+                       "Empty cmds for %s.",
+                       source.c_str());
         }
+      }
 
-        RCLCPP_INFO(impl_.node_.get_logger(),
-                    "Preparing to execute cmds_%d",
-                    cmds_go_last_);
-
+      Result get_yaml_args(const std::string &source, const std::string &cmds,
+                           std::unique_ptr<YamlArgs> &yaml_args)
+      {
         // Prepare to parse the command list.
         auto running_yaml_holder = std::make_shared<YamlHolder>();
         auto result = running_yaml_holder->from_string(cmds);
 
         // If the initial parse failed, report this and exit
         if (!result.succeeded()) {
-          RCLCPP_ERROR(impl_.node_.get_logger(),
-                       "Parse failed for cmds_%d with error: %s",
-                       cmds_go_last_, result.msg().c_str());
-          return Result::success();
+          return Result::make_result(ResultCodes::parse_error,
+                                     "Parse failed for %s with error: %s",
+                                     source.c_str(), result.msg().c_str());
         }
 
         // Get a YamlArgs.
-        std::unique_ptr<YamlArgs> yaml_args;
         result = running_yaml_holder->get_args(running_yaml_holder, yaml_args);
 
         // If the we couldn't get args, report this and exit
         if (!result.succeeded()) {
-          RCLCPP_ERROR(impl_.node_.get_logger(),
-                       "get_args failed for cmds_%d with error: %s",
-                       cmds_go_last_, result.msg().c_str());
+          return Result::make_result(ResultCodes::parse_error,
+                                     "get_args failed for %s with error: %s",
+                                     source.c_str(), result.msg().c_str());
+        }
+
+        return Result::success();
+      }
+
+      Result on_timer_starting(const rclcpp::Time &now)
+      {
+        (void) now;
+
+        // if no error recovery commands, then we are ready.
+        if (!cmds_err_.empty()) {
+          state_ = States::ready;
           return Result::success();
         }
 
-        // Validate the cmds.
+        // Validate the error sequence. If the validation fails
+        // move into error state and don't proceed.
+        std::unique_ptr<YamlArgs> yaml_args;
+        auto result = get_yaml_args(SOURCE_CMDS_ERR, cmds_err_, yaml_args);
+        if (!result.succeeded()) {
+          RCLCPP_ERROR(impl_.node_.get_logger(),
+                       "get_yaml_args() failed for "
+                         SOURCE_CMDS_ERR
+                         " with error: %s. Processing stopped.",
+                       result.msg().c_str());
+          state_ = States::init_error;
+          return result;
+        }
+
+        // Validate the cmds in cmds_err.
         result = impl_.timer_dispatch_->validate_args(*yaml_args);
         if (!result.succeeded()) {
           RCLCPP_ERROR(impl_.node_.get_logger(),
-                       "Validate failed for cmds_%d with error: %s",
-                       cmds_go_last_, result.msg().c_str());
+                       "validate_args() failed for %s with error: %s. Processing stopped.",
+                       SOURCE_CMDS_ERR, result.msg().c_str());
+          state_ = States::init_error;
+          return result;
+        }
+
+        // Validation succeeded so we can move to the ready state.
+        state_ = States::ready;
+        return Result::success();
+      }
+
+      Result on_timer_ready(const rclcpp::Time &now)
+      {
+        std::string cmds;
+
+        // Get the commands
+        get_cmds(source_, cmds);
+
+        // If no string was returned, then no work to do.
+        if (cmds.empty()) {
           return Result::success();
+        }
+
+        RCLCPP_INFO(impl_.node_.get_logger(),
+                    "Preparing to execute %s",
+                    source_.c_str());
+
+        // Validate the cmd sequence. First get the yaml_args.
+        std::unique_ptr<YamlArgs> yaml_args;
+        auto result = get_yaml_args(source_, cmds, yaml_args);
+        if (!result.succeeded()) {
+          RCLCPP_ERROR(impl_.node_.get_logger(),
+                       "get_yaml_args() failed for %s with error: %s.",
+                       source_.c_str(), result.msg().c_str());
+          return result;
+        }
+
+        // Validate the cmds in source.
+        result = impl_.timer_dispatch_->validate_args(*yaml_args);
+        if (!result.succeeded()) {
+          RCLCPP_ERROR(impl_.node_.get_logger(),
+                       "validate_args() failed for %s with error: %s.",
+                       source_.c_str(), result.msg().c_str());
+          return result;
         }
 
         // Prepare for execution
         result = impl_.timer_dispatch_->prepare_from_args(now, *yaml_args);
         if (!result.succeeded()) {
           RCLCPP_ERROR(impl_.node_.get_logger(),
-                       "Prepare failed for cmds_%d with error: %s",
-                       cmds_go_last_, result.msg().c_str());
-          return Result::success();
-        }
-
-        // Do one on_timer() call for this cmds list just to get it started earlier.
-        // In the timer dispatch we do this so that there is not a delay between
-        // the end of one cmd and the start of the next.
-        result = impl_.timer_dispatch_->on_timer(now);
-        if (!result.succeeded()) {
-          if (!result.concluded())
-            RCLCPP_ERROR(impl_.node_.get_logger(),
-                         "First on_timer() failed for cmds_%d with error: %s",
-                         cmds_go_last_, result.msg().c_str());
-          return Result::success();
+                       "Prepare failed for %s with error: %s",
+                       source_.c_str(), result.msg().c_str());
+          return result;
         }
 
         // Transition to running state
@@ -248,42 +306,93 @@ namespace provoke
         return Result::success();
       }
 
-      Result on_timer_running(const rclcpp::Time &now)
+      Result on_timer_running(const rclcpp::Time &now, bool running_error_state)
       {
         // Dispatch the on_timer call.
         auto result = impl_.timer_dispatch_->on_timer(now);
 
         // If success, then just return.
         if (result.succeeded()) {
-          return Result::success();
+          return result;
         }
 
-        // Transition to the ready state if concluded or error
+        // Try transitioning for the ready state
         state_ = States::ready;
 
-        // If an error occurred, then log the error.
-        if (!result.concluded()) {
-          RCLCPP_ERROR(impl_.node_.get_logger(),
-                       "on_timer() failed for cmds_%d with error: %s",
-                       cmds_go_last_, result.msg().c_str());
-          return Result::success();
+        // Transition to the ready state if concluded
+        if (result.concluded()) {
+          RCLCPP_INFO(impl_.node_.get_logger(),
+                      "on_timer() for %s concluded successfully",
+                      source_.c_str());
+          return result;
         }
 
-        RCLCPP_INFO(impl_.node_.get_logger(),
-                    "cmds_%d concluded successfully",
-                    cmds_go_last_);
-        return Result::failure();
+        // An error occurred
+        // If no cleanup commands, then just return the error and
+        // transition to ready state.
+        if (cmds_err_.empty()) {
+          RCLCPP_INFO(impl_.node_.get_logger(),
+                      "on_timer() failed for %s with error: %s",
+                      source_.c_str(), result.msg().c_str());
+          return result;
+        }
+
+        // If we are currently executing
+        // cleanup cmds, then give up.
+        if (running_error_state) {
+          RCLCPP_ERROR(impl_.node_.get_logger(),
+                       "cleanup cmds for %s failed with error: %s",
+                       source_.c_str(), result.msg().c_str());
+          return result;
+        }
+
+        RCLCPP_ERROR(impl_.node_.get_logger(),
+                    "on_timer() failed for %s with error: %s. Executing cleanup commands",
+                    source_.c_str(), result.msg().c_str());
+
+        // Try to execute the cleanup commands.
+        // First get the yaml_args.
+        std::unique_ptr<YamlArgs> yaml_args;
+        result = get_yaml_args(source_, cmds_err_, yaml_args);
+        if (!result.succeeded()) {
+          RCLCPP_ERROR(impl_.node_.get_logger(),
+                       "get_yaml_args() for cleanup failed for %s with error: %s.",
+                       SOURCE_CMDS_ERR, result.msg().c_str());
+          return result;
+        }
+
+        // Prepare for execution of the cleanup commands
+        result = impl_.timer_dispatch_->prepare_from_args(now, *yaml_args);
+        if (!result.succeeded()) {
+          RCLCPP_ERROR(impl_.node_.get_logger(),
+                       "Prepare for cleanup failed for %s with error: %s",
+                       SOURCE_CMDS_ERR, result.msg().c_str());
+          return result;
+        }
+
+        // Transition to running_error state
+        state_ = States::running_error;
+        return Result::success();
       }
 
       Result on_timer(const rclcpp::Time &now) override
       {
         Result result{};
         switch (state_) {
+          case States::starting:
+            result = on_timer_starting(now);
+            break;
           case States::ready:
             result = on_timer_ready(now);
             break;
           case States::running:
-            result = on_timer_running(now);
+            result = on_timer_running(now, false);
+            break;
+          case States::running_error:
+            result = on_timer_running(now, true);
+            break;
+          case States::init_error:
+            result = Result::failure();
             break;
         }
         return result;

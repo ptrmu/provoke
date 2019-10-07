@@ -65,23 +65,23 @@ namespace provoke
                 response.rc, response.str.c_str());
 
     // Figure out what if an error occurred.
-    if (response.rc == response.OK) {
-      return Result::success();
-
-    } else if (response.rc == response.ERROR) {
-      return Result::make_result(ResultCodes::failure,
-                                 "%s action %s failed with error %s",
-                                 name_.c_str(), action_str_.c_str(), response.str.c_str());
+    if (response.rc == response.ERROR) {
+      pending_result_ = Result::make_result(ResultCodes::failure,
+                                            "%s action %s failed with error %s",
+                                            name_.c_str(), action_str_.c_str(), response.str.c_str());
 
     } else if (response.rc == response.TIMEOUT) {
-      return Result::make_result(ResultCodes::failure,
-                                 "%s action %s timed out with error %s",
-                                 name_.c_str(), action_str_.c_str(), response.str.c_str());
+      pending_result_ = Result::make_result(ResultCodes::failure,
+                                            "%s action %s timed out with error %s",
+                                            name_.c_str(), action_str_.c_str(), response.str.c_str());
+
+    } else if (response.rc != response.OK) {
+      pending_result_ = Result::make_result(ResultCodes::failure,
+                                            "%s action %s failed with unknown error %s",
+                                            name_.c_str(), action_str_.c_str(), response.str.c_str());
     }
 
-    return Result::make_result(ResultCodes::failure,
-                               "%s action %s failed with unknown error %s",
-                               name_.c_str(), action_str_.c_str(), response.str.c_str());
+    return pending_result_;
   }
 
   Result TelloMachineAction::on_tello_action_response(const tello_msgs::srv::TelloAction_Response &action_response)
@@ -95,22 +95,22 @@ namespace provoke
                 "%s future complete - rc:%d",
                 name_.c_str(), action_response.rc);
 
-    if (action_response.rc == action_response.OK) {
-      return Result::success();
-
-    } else if (action_response.rc == action_response.ERROR_BUSY) {
-      return Result::make_result(ResultCodes::failure,
-                                 "%s action %s returned busy.",
-                                 name_.c_str(), action_str_.c_str());
+    if (action_response.rc == action_response.ERROR_BUSY) {
+      pending_result_ = Result::make_result(ResultCodes::failure,
+                                            "%s action_response %s returned busy.",
+                                            name_.c_str(), action_str_.c_str());
 
     } else if (action_response.rc == action_response.ERROR_NOT_CONNECTED) {
-      return Result::make_result(ResultCodes::failure,
-                                 "%s action %s returned not connected.",
-                                 name_.c_str(), action_str_.c_str());
+      pending_result_ = Result::make_result(ResultCodes::failure,
+                                            "%s action_response %s returned not connected.",
+                                            name_.c_str(), action_str_.c_str());
+
+    } else if (action_response.rc != action_response.OK) {
+      pending_result_ = Result::make_result(ResultCodes::failure,
+                                            "%s action_response %s returned an unknown error: %d.",
+                                            name_.c_str(), action_str_.c_str(), action_response.rc);
     }
 
-    return Result::make_result(ResultCodes::failure,
-                               "%s action %s returned an unknown error: %d.",
-                               name_.c_str(), action_str_.c_str(), action_response.rc);
+    return pending_result_;
   }
 }

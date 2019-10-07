@@ -41,9 +41,14 @@ namespace provoke
           return;
         }
 
+        init_try_count_ += 1;
         // Set the init flag if all the telloDispatch classed are ready.
         for (auto &tello_dispatch : tello_dispatches_) {
           if (!tello_dispatch->is_action_client_ready()) {
+            if (init_try_count_ > 200) {
+              init_try_count_ = 0;
+              RCLCPP_INFO(node_.get_logger(), "action_client_ready returns false. Continuing to try,");
+            }
             return;
           }
         }
