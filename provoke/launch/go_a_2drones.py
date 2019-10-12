@@ -15,22 +15,24 @@ import shared_launch as sl
 map_filename = os.path.join(package_cfg_directory, 'fiducial_marker_locations_office.yaml')
 rviz_config_filename = os.path.join(package_cfg_directory, 'provoke.rviz')
 
-tello_ros_args = [{
+number_of_drones = 1
+
+tello_ros_args_1 = [{
     'drone_ip': '192.168.0.21',
     'command_port': '38065',
     'drone_port': '8889',
     'data_port': '8890',
     'video_port': '11111'
 }]
-# tello_ros_args = [{
-#     'drone_ip': '192.168.0.30',
-#     'command_port': '11002',
-#     'drone_port': '8889',
-#     'data_port': '13002',
-#     'video_port': '14002'
-# }]
+tello_ros_args_2 = [{
+    'drone_ip': '192.168.0.30',
+    'command_port': '11002',
+    'drone_port': '8889',
+    'data_port': '13002',
+    'video_port': '14002'
+}]
 
-tello_ros_args_list = [tello_ros_args]
+tello_ros_args_list = [tello_ros_args_1, tello_ros_args_2]
 
 vloc_args = [{
     'use_sim_time': False,  # Use /clock if available
@@ -53,6 +55,6 @@ vmap_args = [{
 }]
 
 def generate_launch_description():
-    action_list = sl.generate_action_list("", tello_ros_args_list, vloc_args, vmap_args, rviz_config_filename)
+    action_list = sl.generate_action_list("drone", tello_ros_args_list, vloc_args, vmap_args, rviz_config_filename)
     print(action_list)
     return LaunchDescription(action_list)

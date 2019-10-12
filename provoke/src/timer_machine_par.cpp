@@ -169,7 +169,8 @@ namespace provoke
         if (!seq->done()) {
           set_concluded();
           return Result::make_result(ResultCodes::failure,
-                                     "Machine - %s error: more sequences than dispatches.");
+                                     "Machine - %s:%s error: more sequences than dispatches.",
+                                     dispatch_.name_.c_str(), name_.c_str());
         }
 
         return Result::success();

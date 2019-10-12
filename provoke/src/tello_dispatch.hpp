@@ -5,6 +5,8 @@
 #include "shared_dispatch.hpp"
 #include "tello_interface.hpp"
 #include "tello_msgs/srv/tello_action.hpp"
+#include "tello_msgs/msg/flight_data.hpp"
+
 
 namespace provoke
 {
@@ -15,11 +17,12 @@ namespace provoke
 
     rclcpp::Client<tello_msgs::srv::TelloAction>::SharedPtr action_client_;
     rclcpp::Subscription<tello_msgs::msg::TelloResponse>::SharedPtr tello_response_sub_;
+    rclcpp::Subscription<tello_msgs::msg::FlightData >::SharedPtr flight_data_sub_;
 
     ActionFuture action_future_{};
 
   public:
-    TelloDispatch(ProvokeNodeImpl &impl, int inst_index);
+    TelloDispatch(ProvokeNodeImpl &impl, int inst_index, const std::string &ns);
 
     ~TelloDispatch() override;
 

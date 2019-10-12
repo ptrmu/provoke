@@ -21,10 +21,29 @@ namespace provoke
     tello_dispatches_{},
     base_machine_{base_machine::factory(*this)}
   {
+#undef CXT_MACRO_MEMBER
+#define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_LOAD_PARAMETER(node_, cxt_, n, t, d)
+    CXT_MACRO_INIT_PARAMETERS(PROVOKE_NODE_ALL_PARAMS, validate_parameters)
+
+#undef CXT_MACRO_MEMBER
+#define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_PARAMETER_CHANGED(cxt_, n, t)
+    CXT_MACRO_REGISTER_PARAMETERS_CHANGED(node_, PROVOKE_NODE_ALL_PARAMS, validate_parameters)
+
+#undef CXT_MACRO_MEMBER
+#define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_LOG_PARAMETER(RCLCPP_INFO, node_.get_logger(), cxt_, n, t, d)
+    PROVOKE_NODE_ALL_PARAMS
+
+    // If there are no namespaces, then create a vector with one empty namespace
+    auto ns_drones = cxt_.ns_drones_;
+    if (ns_drones.empty()) {
+      ns_drones.emplace_back(std::string{});
+    }
+
     // Create a bunch of timer_dispatches for use by the par machine.
     // Give each its own identifier for logging.
-    for (int i = 0; i < 4; i += 1) {
-      tello_dispatches_.emplace_back(std::make_unique<TelloDispatch>(*this, i));
+    for (size_t i = 0; i < ns_drones.size(); i += 1) {
+
+      tello_dispatches_.emplace_back(std::make_unique<TelloDispatch>(*this, i, ns_drones[i]));
       timer_dispatches_.emplace_back(std::make_unique<TimerDispatch>(*this, i + 1, *tello_dispatches_[i]));
     }
 
@@ -47,18 +66,24 @@ namespace provoke
           if (!tello_dispatch->is_action_client_ready()) {
             if (init_try_count_ > 200) {
               init_try_count_ = 0;
-              RCLCPP_INFO(node_.get_logger(), "action_client_ready returns false. Continuing to try,");
+              RCLCPP_INFO(node_.get_logger(),
+                          "%s action_client_ready() returns false. Continuing to try,",
+                          tello_dispatch->name_.c_str());
             }
             return;
           }
         }
         inited_ = true;
       });
-
     (void) timer_;
   }
 
   ProvokeNodeImpl::~ProvokeNodeImpl() = default;
+
+  void ProvokeNodeImpl::validate_parameters()
+  {
+    (void) this; // silence static warning
+  }
 
   // ==============================================================================
   // ProvokeNode class

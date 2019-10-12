@@ -75,18 +75,33 @@ namespace provoke
       return Result::success();
     }
 
-    Result prepare_cmd_from_seq(const rclcpp::Time &now)
+    Result prepare_cmd_from_seq(const rclcpp::Time &now, bool call_on_timer)
     {
       // must be in running state
       assert(state_ == States::running);
 
-      // Prepare the machine that the seq points to. Also advance the seq.
-      auto result = prepare_cmd_from_args(now);
+      Result result{};
 
-      // If there was an error, move to concluded state
-      if (!result.succeeded()) {
-        set_concluded();
-      }
+      // Execute the on_timer() routine so that a command immediately follows
+      // the preceding one. Otherwise there is an extra on_timer() delay.
+      // We have to loop in-case the first on_timer() returns concluded().
+      do {
+
+        // Prepare the machine that the seq points to. Also advance the seq.
+        result = prepare_cmd_from_args(now);
+
+        // If there was an error, move to concluded state.
+        if (!result.succeeded()) {
+          set_concluded();
+          break;
+        }
+
+        // Call the on_timer routine once if requested.
+        if (call_on_timer) {
+          result = running_machine_->on_timer(now);
+        }
+
+      } while (call_on_timer && result.concluded());
 
       return result;
     }
@@ -116,7 +131,7 @@ namespace provoke
       }
 
       // Prepare the next machine in the argument sequence.
-      return prepare_cmd_from_seq(now);
+      return prepare_cmd_from_seq(now, true);
     }
 
   protected:
@@ -219,15 +234,15 @@ namespace provoke
       auto result = args.get_seq(running_seq_);
       if (!result.succeeded()) {
         RCLCPP_ERROR(impl_.node_.get_logger(),
-                     "%s expects a sequence as an argument",
-                     name_);
+                     "SharedDispatch %s returned a parse error: %s",
+                     name_.c_str(), result.msg().c_str());
         return result;
       }
 
       state_ = States::running;
 
       // Prepare this command
-      return prepare_cmd_from_seq(now);
+      return prepare_cmd_from_seq(now, false);
     }
   };
 }

@@ -3,17 +3,22 @@
 
 namespace provoke
 {
-  TelloDispatch::TelloDispatch(ProvokeNodeImpl &impl, int inst_index) :
+  TelloDispatch::TelloDispatch(ProvokeNodeImpl &impl, int inst_index, const std::string &ns) :
     SharedDispatch("tello_dispatch", impl, inst_index)
   {
     auto &node = impl_.node_;
 
-    action_client_ = node.create_client<tello_msgs::srv::TelloAction>("tello_action");
+    std::string ns_pre{ns};
+    if (!ns_pre.empty()) {
+      ns_pre.append("/");
+    }
+
+    action_client_ = node.create_client<tello_msgs::srv::TelloAction>(std::string{ns_pre}.append("tello_action"));
 
     // Subscribe to the "tello_response" messages.
     // TODO: pick up the message name from the node parameters.
     tello_response_sub_ = node.create_subscription<tello_msgs::msg::TelloResponse>(
-      "tello_response",
+      std::string{ns_pre}.append("tello_response"),
       rclcpp::ServicesQoS(),
       [this](tello_msgs::msg::TelloResponse::SharedPtr msg) -> void
       {
@@ -28,6 +33,22 @@ namespace provoke
         }
       });
     (void) tello_response_sub_;
+
+    // Subscribe to the "flight_data" messages.
+    // TODO: pick up the message name from the node parameters.
+    flight_data_sub_ = node.create_subscription<tello_msgs::msg::FlightData>(
+      std::string{ns_pre}.append("flight_data"),
+      rclcpp::ServicesQoS(),
+      [this](tello_msgs::msg::FlightData::SharedPtr msg) -> void
+      {
+        (void) msg;
+//        if (running_machine_ != nullptr) {
+//          RCLCPP_INFO(impl_.node_.get_logger(),
+//                      "FlightData machine %s bat:%d, baro:%7.3f, yaw:%d",
+//                      running_machine_->name_.c_str(), msg->bat, msg->baro, msg->yaw);
+//        }
+      });
+    (void) flight_data_sub_;
 
     new_machine_ = [this](const std::string &cmd) -> std::unique_ptr<TelloInterface>
     {

@@ -42,12 +42,6 @@ add_executable(${PROJECT_NAME}
   src/args_interface.cpp
   src/provoke_node_impl.cpp
   src/provoke_node_main.cpp
-  src/sm_go.cpp
-  src/sm_manager.cpp
-  src/sm_out_back.cpp
-  src/sm_pause.cpp
-  src/sm_send_action.cpp
-  src/state_machine_interface.cpp
   src/yaml_args.cpp
   src/result.cpp
   src/timer_machine_par.cpp

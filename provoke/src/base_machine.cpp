@@ -54,11 +54,38 @@ namespace provoke
       return go_commands;
     }
 
+    static std::string generate_rot_oscillate_2(int radius, int revolutions, int stops_per_rev)
+    {
+      std::string go_commands{"[par: [[tello: [takeoff, send: go 50 0 50 50]], [tello: [takeoff, send: go 50 0 50 50]]], "};
+
+      auto rotations = generate_rotation(revolutions, stops_per_rev);
+      double p0{0.0};
+      double p1{0.0};
+      for (const auto &r : rotations) {
+        auto n0 = std::get<0>(r);
+        auto n1 = std::get<1>(r);
+        auto d0 = n0 - p0;
+        auto d1 = n1 - p1;
+        p0 = n0;
+        p1 = n1;
+        std::string s0{std::to_string(static_cast<int>(d0 * radius))};
+        std::string s1{std::to_string(static_cast<int>(d1 * radius))};
+        std::string send{"[tello: [send: go 0 "};
+        send.append(s0).append(" ").append(s1).append(" 50]]");
+        go_commands.append("par: [").append(send).append(", ").append(send).append("], ");
+      }
+
+      go_commands.append("par: [[tello: [land]], [tello: [land]]]]");
+      return go_commands;
+    }
+
   public:
     static std::string generate(const std::string &cmds_generate)
     {
       if (cmds_generate == "rot_oscillate_1") {
-        return generate_rot_oscillate_1(50, 2, 4);
+        return generate_rot_oscillate_1(50, 1, 8);
+      } else if (cmds_generate == "rot_oscillate_2") {
+        return generate_rot_oscillate_2(50, 1, 8);
       }
       return std::string{};
     }
@@ -66,29 +93,6 @@ namespace provoke
 
   namespace base_machine
   {
-
-    // ==============================================================================
-    // Parameters
-    // ==============================================================================
-
-#define ERR "[pause: 1, tello: [land]]"
-#define PK0 "[tello: [land]]"
-#define PK1 "[par: [[pause: 2], [pause: 3, pause: 4]]]"
-#define PK2 "[tello: [takeoff, send: go 50 50 100 50, send: go 0 -100 0 50, send: go 0 50 -100 50, send: go 0 50 100 50, send: go 0 -100 0 50, send: go 0 50 -100 50, land]]"
-#define PK3 "[pause: 3, tello: [takeoff, send: forward 50, send: left 50, send: right 100, send: left 50, land]]"
-#define PK4 "[pause: 3, tello: [takeoff, send: go 50 0 0 50, send: go 0 50 0 50, send: go 0 -100 0 50, send: go 0 50 0 50, land]]"
-
-#define BASE_MACHINE_ALL_PARAMS \
-  CXT_MACRO_MEMBER(cmds_go, int, -1) /* poke list to execute */\
-  CXT_MACRO_MEMBER(cmds_generate, std::string, "rot_oscillate_1") /* programmatically generate sequence */ \
-  CXT_MACRO_MEMBER(cmds_err, std::string, ERR) /* Sequence of commands in respond to error */ \
-  CXT_MACRO_MEMBER(cmds_0, std::string, PK0) /* Sequence of commands 0 */ \
-  CXT_MACRO_MEMBER(cmds_1, std::string, PK1) /* Sequence of commands 1 */ \
-  CXT_MACRO_MEMBER(cmds_2, std::string, PK2) /* Sequence of commands 2 */ \
-  CXT_MACRO_MEMBER(cmds_3, std::string, PK3) /* Sequence of commands 3 */ \
-  CXT_MACRO_MEMBER(cmds_4, std::string, PK4) /* Sequence of commands 4 */ \
-  /* End of list */
-
 
     // ==============================================================================
     // Machine class
@@ -111,30 +115,10 @@ namespace provoke
 
       std::string source_{};
 
-      void validate_parameters()
-      {
-        (void) this; // silence static warning
-      }
-
-#undef CXT_MACRO_MEMBER
-#define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_DEFINE_MEMBER(n, t, d)
-      BASE_MACHINE_ALL_PARAMS
-
     public:
       explicit Machine(provoke::ProvokeNodeImpl &impl)
         : TimerInterface{"timer_pause", impl}
       {
-#undef CXT_MACRO_MEMBER
-#define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_LOAD_PARAMETER(impl_.node_, (*this), n, t, d)
-        CXT_MACRO_INIT_PARAMETERS(BASE_MACHINE_ALL_PARAMS, validate_parameters)
-
-#undef CXT_MACRO_MEMBER
-#define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_PARAMETER_CHANGED((*this), n, t)
-        CXT_MACRO_REGISTER_PARAMETERS_CHANGED(impl_.node_, BASE_MACHINE_ALL_PARAMS, validate_parameters)
-
-#undef CXT_MACRO_MEMBER
-#define CXT_MACRO_MEMBER(n, t, d) CXT_MACRO_LOG_PARAMETER(RCLCPP_INFO, impl_.node_.get_logger(), (*this), n, t, d)
-        BASE_MACHINE_ALL_PARAMS
       }
 
       ~Machine() override = default;
@@ -143,16 +127,16 @@ namespace provoke
       void get_cmds(std::string &source, std::string &cmds)
       {
         // Test if we are supposed to calculate a command sequence.
-        if (!cmds_generate_.empty()) {
-          source = cmds_generate_;
-          cmds = SequenceGenerator::generate(cmds_generate_);
-          CXT_MACRO_SET_PARAMETER(impl_.node_, (*this), cmds_generate, "");
+        if (!impl_.cxt_.cmds_generate_.empty()) {
+          source = impl_.cxt_.cmds_generate_;
+          cmds = SequenceGenerator::generate(impl_.cxt_.cmds_generate_);
+          CXT_MACRO_SET_PARAMETER(impl_.node_, impl_.cxt_, cmds_generate, "");
           return;
         }
 
         // test to see if the parameter cmds_go_ is non-negative. If it
         // is then we will load and execute the indicated cmds.
-        if (cmds_go_ < 0) {
+        if (impl_.cxt_.cmds_go_ < 0) {
           source.clear();
           cmds.clear();
           return;
@@ -161,28 +145,28 @@ namespace provoke
         // Pick one of the lists of commands to execute. Make a copy
         // of the string because it needs to stay around while it is being
         // executed. The parameter itself could change during execution.
-        source = std::string{"cmds_"}.append(std::to_string(cmds_go_));
-        switch (cmds_go_) {
+        source = std::string{"cmds_"}.append(std::to_string(impl_.cxt_.cmds_go_));
+        switch (impl_.cxt_.cmds_go_) {
           default:
           case 0:
-            cmds = cmds_0_;
+            cmds = impl_.cxt_.cmds_0_;
             break;
           case 1:
-            cmds = cmds_1_;
+            cmds = impl_.cxt_.cmds_1_;
             break;
           case 2:
-            cmds = cmds_2_;
+            cmds = impl_.cxt_.cmds_2_;
             break;
           case 3:
-            cmds = cmds_3_;
+            cmds = impl_.cxt_.cmds_3_;
             break;
           case 4:
-            cmds = cmds_4_;
+            cmds = impl_.cxt_.cmds_4_;
             break;
         }
 
         // We have picked up this command, so reset the go parameter.
-        CXT_MACRO_SET_PARAMETER(impl_.node_, (*this), cmds_go, -1);
+        CXT_MACRO_SET_PARAMETER(impl_.node_, impl_.cxt_, cmds_go, -1);
 
         if (cmds.empty()) {
           RCLCPP_ERROR(impl_.node_.get_logger(),
@@ -223,7 +207,7 @@ namespace provoke
         (void) now;
 
         // if no error recovery commands, then we are ready.
-        if (!cmds_err_.empty()) {
+        if (!impl_.cxt_.cmds_err_.empty()) {
           state_ = States::ready;
           return Result::success();
         }
@@ -231,7 +215,7 @@ namespace provoke
         // Validate the error sequence. If the validation fails
         // move into error state and don't proceed.
         std::unique_ptr<YamlArgs> yaml_args;
-        auto result = get_yaml_args(SOURCE_CMDS_ERR, cmds_err_, yaml_args);
+        auto result = get_yaml_args(SOURCE_CMDS_ERR, impl_.cxt_.cmds_err_, yaml_args);
         if (!result.succeeded()) {
           RCLCPP_ERROR(impl_.node_.get_logger(),
                        "get_yaml_args() failed for "
@@ -272,6 +256,9 @@ namespace provoke
         RCLCPP_INFO(impl_.node_.get_logger(),
                     "Preparing to execute %s",
                     source_.c_str());
+        RCLCPP_INFO(impl_.node_.get_logger(),
+                    "Cmds: %s",
+                    cmds.c_str());
 
         // Validate the cmd sequence. First get the yaml_args.
         std::unique_ptr<YamlArgs> yaml_args;
@@ -330,7 +317,7 @@ namespace provoke
         // An error occurred
         // If no cleanup commands, then just return the error and
         // transition to ready state.
-        if (cmds_err_.empty()) {
+        if (impl_.cxt_.cmds_err_.empty()) {
           RCLCPP_INFO(impl_.node_.get_logger(),
                       "on_timer() failed for %s with error: %s",
                       source_.c_str(), result.msg().c_str());
@@ -353,7 +340,7 @@ namespace provoke
         // Try to execute the cleanup commands.
         // First get the yaml_args.
         std::unique_ptr<YamlArgs> yaml_args;
-        result = get_yaml_args(source_, cmds_err_, yaml_args);
+        result = get_yaml_args(source_, impl_.cxt_.cmds_err_, yaml_args);
         if (!result.succeeded()) {
           RCLCPP_ERROR(impl_.node_.get_logger(),
                        "get_yaml_args() for cleanup failed for %s with error: %s.",
